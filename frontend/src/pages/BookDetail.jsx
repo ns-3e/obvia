@@ -80,7 +80,14 @@ const BookDetail = () => {
             </p>
           )}
         </div>
-        <button className="btn-outline flex items-center space-x-2">
+        <button 
+          onClick={() => {
+            // TODO: Implement edit functionality
+            console.log('Edit button clicked for book:', book.id)
+            alert('Edit functionality coming soon!')
+          }}
+          className="btn-outline flex items-center space-x-2"
+        >
           <Edit className="h-4 w-4" />
           <span>Edit</span>
         </button>

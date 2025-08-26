@@ -4,10 +4,15 @@ from books.serializers import BookSerializer, TagSerializer, ShelfSerializer
 
 
 class LibrarySerializer(serializers.ModelSerializer):
+    library_books_count = serializers.SerializerMethodField()
+    
     class Meta:
         model = Library
-        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'description', 'created_at', 'updated_at', 'library_books_count']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'library_books_count']
+    
+    def get_library_books_count(self, obj):
+        return obj.library_books.count()
 
 
 class LibraryBookSerializer(serializers.ModelSerializer):

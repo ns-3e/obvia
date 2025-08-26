@@ -34,6 +34,7 @@ const AddBook = () => {
   const handleScan = (scannedIsbn) => {
     setIsbn(scannedIsbn)
     setShowScanner(false)
+    // Automatically lookup the book after scanning
     lookupBook(scannedIsbn)
   }
 

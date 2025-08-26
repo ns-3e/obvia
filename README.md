@@ -89,6 +89,51 @@ Copy `.env.example` to `.env` and configure the following variables:
 - `MEDIA_ROOT`: Local file storage path
 - `USE_OBJECT_STORAGE`: Enable MinIO object storage (default: false)
 
+## Bulk Scanner
+
+The bulk scanner feature allows you to quickly scan multiple books using your device's camera. It provides live barcode detection with automatic metadata enrichment and import.
+
+### How to Use Bulk Scanner
+
+1. **Access the Scanner**: Click the "Bulk Scan" button in the header or navigate to `/scan`
+2. **Select Target Library**: Choose which library to import books into
+3. **Start Scanning**: Click "Start Scanning" to activate the camera
+4. **Scan Books**: Hold books with barcodes in front of the camera
+5. **Monitor Progress**: Watch the live queue panel for import status
+6. **Export Results**: Use "Export CSV" to save a record of the session
+
+### Scanner Features
+
+- **Live Camera Preview**: Real-time video feed with scanning overlay
+- **Audio Feedback**: Success chime for new books, tick for duplicates
+- **Visual Feedback**: Green flash for new detections, yellow for duplicates
+- **Live Queue**: Real-time display of scanned books with status updates
+- **Automatic Import**: Books are automatically fetched and added to the selected library
+- **Error Handling**: Retry failed imports, clear error messages
+- **Session Management**: Clear queue, export results, remove individual items
+
+### Tips for Best Results
+
+- **Lighting**: Ensure good, even lighting on the barcode
+- **Distance**: Hold books 6-12 inches from the camera
+- **Stability**: Keep the book steady for 1-2 seconds
+- **Barcode Visibility**: Ensure the entire barcode is clearly visible
+- **Camera Position**: Use the back camera on mobile devices for better results
+
+### Keyboard Shortcuts
+
+- **Enter**: Start scanning
+- **Escape**: Stop scanning
+- **Cmd/Ctrl+K**: Clear queue
+
+### Troubleshooting
+
+- **Camera Access Denied**: Allow camera permissions in your browser
+- **No Camera Found**: Ensure your device has a working camera
+- **Camera in Use**: Close other applications using the camera
+- **Poor Detection**: Improve lighting and hold books steady
+- **Network Errors**: Check your internet connection for metadata fetching
+
 ## API Endpoints
 
 ### Libraries

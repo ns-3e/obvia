@@ -66,13 +66,17 @@ const BarcodeScanner = ({ onScan, onClose }) => {
   }
 
   const handleClose = () => {
+    console.log('BarcodeScanner: handleClose called')
     stopScanning()
     onClose()
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="card max-w-md w-full">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={handleClose}
+    >
+      <div className="card max-w-md w-full" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Scan ISBN Barcode
@@ -80,6 +84,7 @@ const BarcodeScanner = ({ onScan, onClose }) => {
           <button
             onClick={handleClose}
             className="p-2 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            type="button"
           >
             <X className="h-5 w-5" />
           </button>
