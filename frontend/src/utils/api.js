@@ -73,10 +73,10 @@ export const librariesAPI = {
   addBook: (libraryId, bookId) => api.post(`/libraries/${libraryId}/books/`, { book_id: bookId }),
   
   // Get books in library
-  getBooks: (libraryId, params = {}) => api.get(`/libraries/${libraryId}/books/`, { params }),
+  getBooks: (libraryId, params = {}) => api.get('/library-books/', { params: { library_id: libraryId, ...params } }),
   
   // Remove book from library
-  removeBook: (libraryId, libraryBookId) => api.delete(`/libraries/${libraryId}/books/${libraryBookId}/`),
+  removeBook: (libraryBookId) => api.delete(`/library-books/${libraryBookId}/`),
 }
 
 export const libraryBooksAPI = {

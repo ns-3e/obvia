@@ -299,6 +299,7 @@ const LibraryDetail = () => {
                 key={book.id}
                 book={book.book}
                 libraryId={libraryId}
+                libraryBookId={book.id}
               />
             ))}
           </div>

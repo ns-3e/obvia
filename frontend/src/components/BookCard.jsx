@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Star, Tag, Calendar } from 'lucide-react'
 
-const BookCard = ({ book, libraryId }) => {
+const BookCard = ({ book, libraryId, libraryBookId }) => {
   const { id, title, subtitle, authors, cover_url, tags = [], rating } = book
 
   return (
     <Link
-      to={`/libraries/${libraryId}/books/${id}`}
+      to={`/libraries/${libraryId}/books/${libraryBookId}`}
       className="card p-6 hover:shadow-lg transition-shadow duration-200 group"
     >
       <div className="flex flex-col h-full">

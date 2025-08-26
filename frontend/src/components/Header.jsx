@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Sun, Moon, Plus, BookOpen } from 'lucide-react'
+import { Search, Sun, Moon, Plus, BookOpen, Camera } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 
 const Header = () => {
@@ -43,6 +43,15 @@ const Header = () => {
 
           {/* Actions */}
           <div className="flex items-center space-x-4">
+            {/* Bulk Scan Button */}
+            <Link
+              to="/scan"
+              className="btn-outline flex items-center space-x-2"
+            >
+              <Camera className="h-4 w-4" />
+              <span>Bulk Scan</span>
+            </Link>
+
             {/* Add Book Button */}
             <Link
               to="/add"

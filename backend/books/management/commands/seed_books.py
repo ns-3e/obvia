@@ -15,11 +15,7 @@ class Command(BaseCommand):
             type=str,
             help='List of ISBNs to seed',
             default=[
-                '9780140283334',  # The Great Gatsby
-                '9780743273565',  # The Great Gatsby (another edition)
-                '9780061120084',  # To Kill a Mockingbird
-                '9780316769488',  # The Catcher in the Rye
-                '9780618640157',  # The Lord of the Rings
+                '9780718028806',  # The Bible
             ]
         )
         parser.add_argument(
@@ -110,7 +106,7 @@ class Command(BaseCommand):
             try:
                 library, created = Library.objects.get_or_create(
                     name="My Library",
-                    defaults={'description': 'Default library for seeded books'}
+                    defaults={'description': 'Default library'}
                 )
                 
                 if created:

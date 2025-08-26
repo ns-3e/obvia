@@ -11,19 +11,19 @@ import RatingPanel from '../components/RatingPanel'
 import ShelfManager from '../components/ShelfManager'
 
 const BookDetail = () => {
-  const { libraryId, bookId } = useParams()
+  const { libraryId, bookId: libraryBookId } = useParams()
   const [libraryBook, setLibraryBook] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
     loadLibraryBook()
-  }, [bookId])
+  }, [libraryBookId])
 
   const loadLibraryBook = async () => {
     try {
       setLoading(true)
-      const response = await libraryBooksAPI.getById(bookId)
+      const response = await libraryBooksAPI.getById(libraryBookId)
       setLibraryBook(response.data)
     } catch (error) {
       console.error('Failed to load book:', error)

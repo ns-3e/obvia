@@ -14,7 +14,11 @@ RUN npm cache clean --force && \
 COPY . .
 
 # Build the app
-RUN npm run build
+RUN npm run build && \
+    ls -la dist/ && \
+    ls -la dist/assets/ && \
+    echo "CSS file size:" && \
+    wc -c dist/assets/*.css
 
 # Production stage
 FROM nginx:alpine

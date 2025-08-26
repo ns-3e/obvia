@@ -5,6 +5,7 @@ A minimal, single-user app to manage a personal book library with ISBN lookup (i
 ## Features
 
 - 📚 **Book Management**: Add books via ISBN lookup or barcode scanning
+- 📷 **Bulk Scanning**: Live webcam barcode scanning with automatic import and audio feedback
 - 🔍 **Metadata Enrichment**: Automatic data fetching from Google Books and Open Library APIs
 - 📝 **Intelligent Notes**: Markdown-based note-taking with AI assistance
 - 🔎 **Search**: Basic search (title/author/ISBN) and semantic search across metadata/notes/PDF text

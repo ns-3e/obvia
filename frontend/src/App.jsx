@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import LibraryDetail from './pages/LibraryDetail'
 import BookDetail from './pages/BookDetail'
 import AddBook from './pages/AddBook'
+import BulkScan from './pages/BulkScan'
 import { ThemeProvider } from './contexts/ThemeContext'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
               <Route path="/libraries/:libraryId" element={<LibraryDetail />} />
               <Route path="/libraries/:libraryId/books/:bookId" element={<BookDetail />} />
               <Route path="/add" element={<AddBook />} />
+              <Route path="/scan" element={<BulkScan />} />
             </Routes>
           </main>
         </div>

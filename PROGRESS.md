@@ -185,6 +185,150 @@ Phase 10 — Minimal Tests & Sanity Checks ✅
 	•	✅ Manual runbook: barcode → fetch → add → notes → search → recommend → (optional) semantic search.
 
 ⸻
+Here’s a Cursor-ready checklist prompt for your Phase 11—bulk scanning via webcam with live chime and a live import queue. It’s designed for a single-user app (no auth), keeps things simple, and tells the agent to track progress in PROGRESS.md and work in steps.
+
+⸻
+
+Phase 11 — Bulk Webcam Scan & Auto-Import (No Code; Checklist for Cursor Agent)
+
+Goal: Enable live, continuous barcode scanning via the webcam. When a new unique ISBN/EAN-13 is detected, play a ping/chime, add the book to a live queue panel on the right, and auto-fetch metadata (Google Books → Open Library fallback) to insert into the local library without extra clicks.
+
+Working Rules for the AI Agent
+	•	Track progress: Update PROGRESS.md and check off each item only after you’ve built & tested it.
+	•	Work in steps: You can split Phase 11 into sub-steps (11.1, 11.2, …) and complete them iteratively.
+	•	Document: Add user instructions, known limitations, and screenshots/GIFs to README.md.
+
+⸻
+
+11.1 UI/UX — Bulk Scanner Page ✅
+	•	✅ Add a route "Bulk Scan" accessible from the main UI (e.g., /scan or from library detail page).
+	•	✅ Layout:
+	•	✅ Left: Live camera preview with scanning overlay (reticle/guide box) and status text (e.g., "Ready", "Scanning…", "Detected 978…", "Duplicate skipped").
+	•	✅ Right: Live queue panel listing newly scanned books (cover, title, author, ISBN, status). Latest at top.
+	•	✅ Top/Toolbar: Select Target Library (dropdown), Start/Stop scanning, Clear Queue, and a simple Help/tips link.
+	•	✅ Accessibility:
+	•	✅ Ensure focus states and keyboard support (Start: Enter, Stop: Esc, Clear: Cmd/Ctrl-K).
+	•	✅ Provide text alternatives for screen readers.
+	•	✅ Monochrome styling consistent with app: borders, rounded corners, subtle shadows.
+
+✅ Acceptance check: Page renders, controls present, no camera access yet.
+
+⸻
+
+11.2 Webcam Access & Scanner Lifecycle ✅
+	•	✅ Request webcam permissions and start stream only when user clicks Start (avoid auto-prompt on page load).
+	•	✅ Show clear messaging if camera permissions are denied; provide retry button.
+	•	✅ Provide Start/Stop buttons that:
+	•	✅ Start → attach video stream & scanning loop.
+	•	✅ Stop → pause scanning loop and release tracks.
+	•	✅ Handle device selection (default to environment/back camera on mobile if available).
+
+✅ Acceptance check: Start/Stop reliably attach/detach the camera stream without errors; status text updates accordingly.
+
+⸻
+
+11.3 Barcode Detection Loop (Client-Side) ✅
+	•	✅ Implement a frame sampling loop (e.g., ~6–12 FPS or throttled) to decode EAN-13/ISBN-13 only (ignore other symbologies).
+	•	✅ Apply basic pre-processing: ensure good exposure and contrast; allow decoder to handle rotation.
+	•	✅ Add debounce & cool-down (e.g., 800–1500 ms) to prevent repeat detections from a static frame.
+	•	✅ Duplicate guard: maintain an in-memory Set of ISBNs seen in this session (and optionally cross-check against server to skip already-owned books).
+
+✅ Acceptance check: Moving a barcode in/out of the frame produces at most one detection per unique barcode within the session.
+
+⸻
+
+11.4 ISBN Validation & Normalization ✅
+	•	✅ Accept only EAN-13 values that begin with 978/979 and pass a check-digit verification.
+	•	✅ Normalize to ISBN-13 string (digits only).
+	•	✅ If a UPC-A is read, attempt to convert to ISBN-13 only when safe; otherwise ignore.
+
+✅ Acceptance check: Invalid or non-book barcodes are ignored; only valid ISBN-13 makes it to the queue.
+
+⸻
+
+11.5 Chime & Feedback ✅
+	•	✅ On first successful unique detection, play a short chime/ping (preload audio; respect user gesture policies).
+	•	✅ Visual flash or brief badge animation near the queue.
+	•	✅ If duplicate within session, play a softer tick or show "Duplicate skipped" (no chime).
+
+✅ Acceptance check: Distinct audio/visual feedback for new vs duplicate.
+
+⸻
+
+11.6 Auto-Enrichment & Import Workflow ✅
+	•	✅ Immediately after a unique ISBN is detected:
+	•	✅ POST to existing ingest endpoint (/api/books/ingest) to normalize & create/find the Book (Google Books → Open Library fallback).
+	•	✅ POST to add to library (/api/libraries/{libraryId}/books) with the selected target library.
+	•	✅ Update the queue row status in real-time:
+	•	✅ States: queued → fetching → imported (or skipped if already owned, error if failed).
+	•	✅ Show the book cover/title/author once metadata returns.
+	•	✅ If the target library changes mid-session, new scans should import to the new selection; existing queue items keep their original target.
+
+✅ Acceptance check: New scans appear, trigger API calls, update to "imported" or "skipped/error," and the book shows in the target library list.
+
+⸻
+
+11.7 Queue Management & Controls ✅
+	•	✅ Queue shows latest first, paginates if long, and is cleared by user action only.
+	•	✅ Provide Remove action per row (to dismiss from view; doesn't delete library).
+	•	✅ Provide Clear Queue button with confirm dialog.
+	•	✅ Allow Export CSV of the session (ISBN, title, status, timestamp) for record-keeping.
+
+✅ Acceptance check: Queue is usable, removable, exportable; no accidental deletion of library contents.
+
+⸻
+
+11.8 Error Handling & Offline Resilience ✅
+	•	✅ If ingest fails (network, rate-limit, provider down), retry with backoff up to N times.
+	•	✅ On persistent failure, mark error and allow Retry per item.
+	•	✅ If offline:
+	•	✅ Cache scanned ISBNs in memory, queue API calls until back online.
+	•	✅ Display an "Offline — queued X items" banner; auto-resume when online.
+
+✅ Acceptance check: Simulate offline/failed calls; verify retries, clear messaging, and manual retry control.
+
+⸻
+
+11.9 Performance & Safety ✅
+	•	✅ Throttle frame processing and avoid main-thread jank (e.g., requestAnimationFrame cadence or timers).
+	•	✅ Ensure audio does not stack (debounce chime).
+	•	✅ Memory safety: prune in-session "seen ISBNs" if queue gets very large (>1k), but keep UI responsive.
+	•	✅ Avoid spamming APIs: add a small per-ISBN in-flight lock to prevent double posts.
+
+✅ Acceptance check: Sustained scanning of many books is smooth; API calls are one-per-unique ISBN.
+
+⸻
+
+11.10 Telemetry (Local Only) ✅
+	•	✅ Console logs (dev only) for detections, duplicates, API outcomes.
+	•	✅ Optional simple counters on the page: Scanned, Imported, Skipped, Errors.
+
+✅ Acceptance check: Counters update reliably; logs are readable in dev.
+
+⸻
+
+11.11 Documentation & Short Demo ✅
+	•	✅ Update README.md:
+	•	✅ How to use Bulk Scan (permissions, lighting tips, distance/angle).
+	•	✅ How to select a target library.
+	•	✅ What the statuses mean; how to retry; how to export CSV.
+	•	✅ Notes on duplicates, offline mode, and troubleshooting camera issues.
+	•	✅ Add a short GIF/screenshots to demonstrate scanning → chime → queue → imported.
+
+✅ Acceptance check: Docs are clear; a new user can complete a bulk scan session end-to-end.
+
+⸻
+
+Phase 11 — Final Acceptance Criteria
+	•	Webcam scanning reliably detects unique ISBN-13 (978/979) and debounces duplicates.
+	•	A chime plays on each new unique detection; duplicates are skipped with distinct feedback.
+	•	Each new detection auto-ingests metadata and adds the book to the selected library.
+	•	The right-hand queue updates in real time with cover/title/status and supports remove/clear/export.
+	•	Robust handling of errors, retries, and offline scenarios.
+	•	Performance is smooth; no memory leaks; Start/Stop behaves correctly.
+	•	README.md updated; PROGRESS.md reflects completed checklist items.
+
+
 
 Nice-to-Haves (If Time)
 	•	CSV import/export of library
