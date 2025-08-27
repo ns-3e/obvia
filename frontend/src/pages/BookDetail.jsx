@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Star, Tag, Calendar, BookOpen, FileText, Brain, Edit } from 'lucide-react'
+import { ArrowLeft, Star, Tag, Calendar, BookOpen, FileText, Brain, Edit, Trash2 } from 'lucide-react'
 import { libraryBooksAPI } from '../utils/api'
 import FileUpload from '../components/FileUpload'
 import FileList from '../components/FileList'
@@ -10,6 +10,8 @@ import NotesEditor from '../components/NotesEditor'
 import RatingPanel from '../components/RatingPanel'
 import ShelfManager from '../components/ShelfManager'
 import EditBookModal from '../components/EditBookModal'
+import BookDeleteDialog from '../components/BookDeleteDialog'
+import Notification from '../components/Notification'
 
 const BookDetail = () => {
   const { libraryId, bookId: libraryBookId } = useParams()
@@ -17,6 +19,8 @@ const BookDetail = () => {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [showEditModal, setShowEditModal] = useState(false)
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, book: null, libraryBookId: null })
+  const [notification, setNotification] = useState({ isVisible: false, message: '', type: 'success' })
 
   useEffect(() => {
     loadLibraryBook()
@@ -31,6 +35,60 @@ const BookDetail = () => {
       console.error('Failed to load book:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteBook = () => {
+    setDeleteDialog({ 
+      isOpen: true, 
+      book: libraryBook?.book, 
+      libraryBookId: libraryBookId 
+    })
+  }
+
+  const handleRemoveFromLibrary = async () => {
+    try {
+      const response = await libraryBooksAPI.removeFromLibrary(deleteDialog.libraryBookId)
+      setDeleteDialog({ isOpen: false, book: null, libraryBookId: null })
+      setNotification({
+        isVisible: true,
+        message: response.data.message,
+        type: 'success'
+      })
+      // Navigate back to library after a short delay
+      setTimeout(() => {
+        window.location.href = `/libraries/${libraryId}`
+      }, 1500)
+    } catch (error) {
+      console.error('Failed to remove book from library:', error)
+      setNotification({
+        isVisible: true,
+        message: error.response?.data?.error || 'Failed to remove book from library',
+        type: 'error'
+      })
+    }
+  }
+
+  const handleDeleteForever = async () => {
+    try {
+      const response = await libraryBooksAPI.deleteForever(deleteDialog.libraryBookId)
+      setDeleteDialog({ isOpen: false, book: null, libraryBookId: null })
+      setNotification({
+        isVisible: true,
+        message: response.data.message,
+        type: 'success'
+      })
+      // Navigate back to library after a short delay
+      setTimeout(() => {
+        window.location.href = `/libraries/${libraryId}`
+      }, 1500)
+    } catch (error) {
+      console.error('Failed to delete book forever:', error)
+      setNotification({
+        isVisible: true,
+        message: error.response?.data?.error || 'Failed to delete book forever',
+        type: 'error'
+      })
     }
   }
 
@@ -82,13 +140,22 @@ const BookDetail = () => {
             </p>
           )}
         </div>
-        <button 
-          onClick={() => setShowEditModal(true)}
-          className="btn-outline flex items-center space-x-2"
-        >
-          <Edit className="h-4 w-4" />
-          <span>Edit</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => setShowEditModal(true)}
+            className="btn-outline flex items-center space-x-2"
+          >
+            <Edit className="h-4 w-4" />
+            <span>Edit</span>
+          </button>
+          <button 
+            onClick={handleDeleteBook}
+            className="btn-outline flex items-center space-x-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 dark:border-red-600 hover:border-red-400 dark:hover:border-red-500"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Delete</span>
+          </button>
+        </div>
       </div>
 
       {/* Book Info Card */}
@@ -350,6 +417,24 @@ const BookDetail = () => {
             book: updatedBook
           }))
         }}
+      />
+
+      {/* Book Delete Dialog */}
+      <BookDeleteDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, book: null, libraryBookId: null })}
+        onRemoveFromLibrary={handleRemoveFromLibrary}
+        onDeleteForever={handleDeleteForever}
+        bookTitle={deleteDialog.book?.title}
+        libraryName={libraryBook?.library?.name}
+      />
+
+      {/* Notification */}
+      <Notification
+        isVisible={notification.isVisible}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ isVisible: false, message: '', type: 'success' })}
       />
     </div>
   )

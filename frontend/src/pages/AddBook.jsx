@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Camera, Search, ArrowLeft, BookOpen, AlertCircle } from 'lucide-react'
 import { booksAPI, librariesAPI } from '../utils/api'
 import BarcodeScanner from '../components/BarcodeScanner'
@@ -12,7 +12,6 @@ const AddBook = () => {
   const [error, setError] = useState(null)
   const [selectedLibrary, setSelectedLibrary] = useState('')
   const [libraries, setLibraries] = useState([])
-  const navigate = useNavigate()
 
   // Load libraries on component mount
   useEffect(() => {
@@ -81,7 +80,7 @@ const AddBook = () => {
       await librariesAPI.addBook(selectedLibrary, book.id)
 
       // Navigate to the library
-      navigate(`/libraries/${selectedLibrary}`)
+      window.location.href = `/libraries/${selectedLibrary}`
     } catch (error) {
       console.error('Failed to add book:', error)
       setError('Failed to add book to library. Please try again.')
@@ -94,12 +93,12 @@ const AddBook = () => {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center space-x-4 mb-8">
-        <button
-          onClick={() => navigate(-1)}
+        <Link
+          to="/"
           className="p-2 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
-        </button>
+        </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Add Book

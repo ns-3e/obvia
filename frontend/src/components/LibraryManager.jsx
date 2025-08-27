@@ -178,19 +178,26 @@ const LibraryManager = ({ onLibraryChange }) => {
         {libraries.map((library) => (
           <div key={library.id} className="card p-4">
             <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                  {library.name}
-                </h3>
-                {library.description && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {library.description}
+                              <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      {library.name}
+                    </h3>
+                    {library.is_system && (
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                        System
+                      </span>
+                    )}
+                  </div>
+                  {library.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {library.description}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {library.library_books_count || 0} books
                   </p>
-                )}
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {library.library_books_count || 0} books
-                </p>
-              </div>
+                </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleEdit(library)}
@@ -199,7 +206,7 @@ const LibraryManager = ({ onLibraryChange }) => {
                 >
                   <Edit className="h-4 w-4" />
                 </button>
-                {library.name !== 'Unassigned' && (
+                {!library.is_system && (
                   <button
                     onClick={() => handleDelete(library)}
                     className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"

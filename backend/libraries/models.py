@@ -6,6 +6,7 @@ class Library(models.Model):
     """Library model for organizing book collections."""
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
+    is_system = models.BooleanField(default=False, help_text="System libraries cannot be deleted")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -21,8 +22,15 @@ class Library(models.Model):
         """Get or create the "Unassigned" library."""
         unassigned_library, created = cls.objects.get_or_create(
             name="Unassigned",
-            defaults={'description': 'Books that are not assigned to any specific library'}
+            defaults={
+                'description': 'Books that are not assigned to any specific library',
+                'is_system': True
+            }
         )
+        # Ensure existing "Unassigned" libraries are marked as system libraries
+        if not created and not unassigned_library.is_system:
+            unassigned_library.is_system = True
+            unassigned_library.save()
         return unassigned_library
 
 

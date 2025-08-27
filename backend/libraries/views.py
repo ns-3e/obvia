@@ -25,10 +25,10 @@ class LibraryViewSet(viewsets.ModelViewSet):
         """Delete library and move books to Unassigned library if they're not in other libraries."""
         library = self.get_object()
         
-        # Prevent deletion of the "Unassigned" library
-        if library.name == "Unassigned":
+        # Prevent deletion of system libraries
+        if library.is_system:
             return Response(
-                {'error': 'The "Unassigned" library cannot be deleted'}, 
+                {'error': f'The "{library.name}" library is a system library and cannot be deleted'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         

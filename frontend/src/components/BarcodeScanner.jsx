@@ -119,8 +119,35 @@ const BarcodeScanner = ({ onScan, onClose }) => {
               console.log('Invalid barcode format:', cleanCode)
             }
           }
-          if (error && error.name !== 'NotFoundException') {
-            console.error('Scanning error:', error)
+          if (error) {
+            try {
+              // Convert error to string for easier checking
+              const errorString = error.toString ? error.toString() : String(error);
+              const errorMessage = error.message || errorString;
+              
+              // Check for various "no barcode found" error types
+              const isNoBarcodeError = 
+                error.name === 'NotFoundException' || 
+                error.name === 'NoMultiFormatReaderException' ||
+                error.name === 'DOMException' ||
+                errorMessage.includes('No MultiFormat Readers were able to detect') ||
+                errorMessage.includes('No barcode found') ||
+                errorMessage.includes('No code detected') ||
+                errorMessage.includes('NotFoundException') ||
+                errorMessage.includes('NoMultiFormatReaderException') ||
+                errorMessage.includes('No MultiFormat Readers were able to detect the code') ||
+                errorMessage.includes('No MultiFormat Readers') ||
+                errorMessage.includes('were able to detect') ||
+                errorMessage.includes('No MultiFormat Readers were able to detect the code.');
+              
+              if (!isNoBarcodeError) {
+                console.error('Scanning error:', error)
+              }
+            } catch (debugError) {
+              // If error handling itself fails, just log the original error
+              console.error('Error in error handling:', debugError);
+              console.error('Original scanning error:', error);
+            }
           }
         },
         {

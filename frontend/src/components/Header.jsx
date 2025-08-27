@@ -1,17 +1,16 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Search, Sun, Moon, Plus, BookOpen, Camera, Library } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 
 const Header = () => {
   const { isDark, toggleTheme } = useTheme()
   const [searchQuery, setSearchQuery] = useState('')
-  const navigate = useNavigate()
 
   const handleSearch = (e) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`)
+      window.location.href = `/?search=${encodeURIComponent(searchQuery.trim())}`
     }
   }
 

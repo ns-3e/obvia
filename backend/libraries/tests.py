@@ -152,19 +152,86 @@ class LibraryAPITest(APITestCase):
         # Check that the book was removed from the deleted library
         self.assertFalse(LibraryBook.objects.filter(library=self.library, book=self.book).exists())
 
-    def test_delete_unassigned_library(self):
-        """Test that the Unassigned library cannot be deleted"""
-        # Create the Unassigned library
-        unassigned_library = Library.get_unassigned_library()
+    def test_delete_system_library(self):
+        """Test that system libraries cannot be deleted"""
+        # Create a system library
+        system_library = Library.objects.create(
+            name="System Library",
+            description="A system library",
+            is_system=True
+        )
         
         # Try to delete it
-        url = reverse('library-detail', args=[unassigned_library.id])
+        url = reverse('library-detail', args=[system_library.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('cannot be deleted', response.data['error'])
+        self.assertIn('system library and cannot be deleted', response.data['error'])
         
         # Check that the library still exists
-        self.assertTrue(Library.objects.filter(name="Unassigned").exists())
+        self.assertTrue(Library.objects.filter(name="System Library").exists())
+
+    def test_remove_book_from_library(self):
+        """Test removing a book from a library"""
+        # Create a library book
+        library_book = LibraryBook.objects.create(
+            library=self.library,
+            book=self.book
+        )
+        
+        # Remove book from library
+        url = reverse('librarybook-remove-from-library', args=[library_book.id])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('moved to Unassigned', response.data['message'])
+        
+        # Check that the book was moved to Unassigned library
+        unassigned_library = Library.objects.get(name="Unassigned")
+        self.assertTrue(LibraryBook.objects.filter(library=unassigned_library, book=self.book).exists())
+
+    def test_remove_book_from_library_with_multiple_libraries(self):
+        """Test removing a book from a library when it exists in other libraries"""
+        # Create another library
+        other_library = Library.objects.create(name="Other Library")
+        
+        # Add the book to both libraries
+        library_book1 = LibraryBook.objects.create(
+            library=self.library,
+            book=self.book
+        )
+        library_book2 = LibraryBook.objects.create(
+            library=other_library,
+            book=self.book
+        )
+        
+        # Remove book from first library
+        url = reverse('librarybook-remove-from-library', args=[library_book1.id])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('removed from library', response.data['message'])
+        
+        # Check that the book was removed from the first library
+        self.assertFalse(LibraryBook.objects.filter(library=self.library, book=self.book).exists())
+        
+        # Check that the book still exists in the other library
+        self.assertTrue(LibraryBook.objects.filter(library=other_library, book=self.book).exists())
+
+    def test_delete_book_forever(self):
+        """Test permanently deleting a book from the application"""
+        # Create a library book
+        library_book = LibraryBook.objects.create(
+            library=self.library,
+            book=self.book
+        )
+        
+        # Delete book forever
+        url = reverse('librarybook-delete-forever', args=[library_book.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('permanently deleted', response.data['message'])
+        
+        # Check that the book was completely deleted
+        self.assertFalse(Book.objects.filter(id=self.book.id).exists())
+        self.assertFalse(LibraryBook.objects.filter(book=self.book).exists())
 
     def test_update_library(self):
         """Test updating a library"""
@@ -191,10 +258,14 @@ class LibraryAPITest(APITestCase):
             book=self.book
         )
         
-        url = reverse('library-remove-book', args=[self.library.id, library_book.id])
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(self.library.books.count(), 0)
+        url = reverse('librarybook-remove-from-library', args=[library_book.id])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('moved to Unassigned', response.data['message'])
+        
+        # Check that the book was moved to Unassigned library
+        unassigned_library = Library.objects.get(name="Unassigned")
+        self.assertTrue(LibraryBook.objects.filter(library=unassigned_library, book=self.book).exists())
 
     def test_get_library_books(self):
         """Test retrieving books in a library"""
@@ -266,3 +337,27 @@ class LibraryBookAPITest(APITestCase):
         response = self.client.get(url, {'author': 'Test Author'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
+
+    def test_create_default_libraries_command(self):
+        """Test the create_default_libraries management command"""
+        from django.core.management import call_command
+        from io import StringIO
+        
+        # Clear any existing libraries
+        Library.objects.all().delete()
+        
+        # Run the command
+        out = StringIO()
+        call_command('create_default_libraries', stdout=out)
+        
+        # Check that the Unassigned library was created
+        unassigned_library = Library.objects.get(name="Unassigned")
+        self.assertTrue(unassigned_library.is_system)
+        self.assertEqual(unassigned_library.description, 'Books that are not assigned to any specific library')
+        
+        # Run the command again - should not create duplicates
+        out = StringIO()
+        call_command('create_default_libraries', stdout=out)
+        
+        # Should still have only one Unassigned library
+        self.assertEqual(Library.objects.filter(name="Unassigned").count(), 1)

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, Filter, Search, Tag, Star, BookOpen } from 'lucide-react'
-import { librariesAPI, tagsAPI, shelvesAPI } from '../utils/api'
+import { librariesAPI, tagsAPI, shelvesAPI, libraryBooksAPI } from '../utils/api'
 import BookCard from '../components/BookCard'
+import BookDeleteDialog from '../components/BookDeleteDialog'
+import Notification from '../components/Notification'
 
 const LibraryDetail = () => {
   const { libraryId } = useParams()
@@ -19,6 +21,8 @@ const LibraryDetail = () => {
   const [availableTags, setAvailableTags] = useState([])
   const [availableShelves, setAvailableShelves] = useState([])
   const [showFilters, setShowFilters] = useState(false)
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, book: null, libraryBookId: null })
+  const [notification, setNotification] = useState({ isVisible: false, message: '', type: 'success' })
 
   useEffect(() => {
     loadLibrary()
@@ -90,6 +94,50 @@ const LibraryDetail = () => {
       rating: '',
       shelf: ''
     })
+  }
+
+  const handleDeleteBook = (book, libraryBookId) => {
+    setDeleteDialog({ isOpen: true, book, libraryBookId })
+  }
+
+  const handleRemoveFromLibrary = async () => {
+    try {
+      const response = await libraryBooksAPI.removeFromLibrary(deleteDialog.libraryBookId)
+      await loadBooks()
+      setDeleteDialog({ isOpen: false, book: null, libraryBookId: null })
+      setNotification({
+        isVisible: true,
+        message: response.data.message,
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('Failed to remove book from library:', error)
+      setNotification({
+        isVisible: true,
+        message: error.response?.data?.error || 'Failed to remove book from library',
+        type: 'error'
+      })
+    }
+  }
+
+  const handleDeleteForever = async () => {
+    try {
+      const response = await libraryBooksAPI.deleteForever(deleteDialog.libraryBookId)
+      await loadBooks()
+      setDeleteDialog({ isOpen: false, book: null, libraryBookId: null })
+      setNotification({
+        isVisible: true,
+        message: response.data.message,
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('Failed to delete book forever:', error)
+      setNotification({
+        isVisible: true,
+        message: error.response?.data?.error || 'Failed to delete book forever',
+        type: 'error'
+      })
+    }
   }
 
   if (loading && !library) {
@@ -300,11 +348,31 @@ const LibraryDetail = () => {
                 book={book.book}
                 libraryId={libraryId}
                 libraryBookId={book.id}
+                onDelete={handleDeleteBook}
+                libraryName={library?.name}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Book Delete Dialog */}
+      <BookDeleteDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, book: null, libraryBookId: null })}
+        onRemoveFromLibrary={handleRemoveFromLibrary}
+        onDeleteForever={handleDeleteForever}
+        bookTitle={deleteDialog.book?.title}
+        libraryName={library?.name}
+      />
+
+      {/* Notification */}
+      <Notification
+        isVisible={notification.isVisible}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ isVisible: false, message: '', type: 'success' })}
+      />
     </div>
   )
 }

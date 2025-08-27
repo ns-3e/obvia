@@ -53,7 +53,7 @@ const Libraries = () => {
             • When you delete a library, books that aren't in other libraries will be moved to the "Unassigned" library
           </p>
           <p>
-            • The "Unassigned" library cannot be deleted and serves as a default location for books
+            • System libraries (marked with "System" badge) cannot be deleted and serve as default locations
           </p>
           <p>
             • You can edit library names and descriptions at any time

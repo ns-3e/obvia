@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { Star, Tag, Calendar, MoreVertical } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const BookCard = ({ book, libraryId, libraryBookId, onDelete, libraryName }) => {
   const { id, title, subtitle, authors, cover_url, tags = [], rating } = book
   const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
 
   const handleDeleteClick = (e) => {
     e.preventDefault()
@@ -14,10 +15,27 @@ const BookCard = ({ book, libraryId, libraryBookId, onDelete, libraryName }) => 
     }
   }
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
+
   return (
     <div className="card p-6 hover:shadow-lg transition-shadow duration-200 group relative">
       {/* Delete Menu Button */}
-      <div className="absolute top-2 right-2 z-10">
+      <div className="absolute top-2 right-2 z-10" ref={menuRef}>
         <button
           onClick={(e) => {
             e.preventDefault()
