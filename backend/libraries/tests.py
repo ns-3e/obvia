@@ -99,6 +99,73 @@ class LibraryAPITest(APITestCase):
         self.assertEqual(Library.objects.count(), 2)
         self.assertEqual(Library.objects.get(name='New Library').name, 'New Library')
 
+    def test_delete_library_with_books(self):
+        """Test deleting a library and moving books to Unassigned library"""
+        # Create a library book
+        library_book = LibraryBook.objects.create(
+            library=self.library,
+            book=self.book
+        )
+        
+        # Delete the library
+        url = reverse('library-detail', args=[self.library.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        
+        # Check that the library is deleted
+        self.assertEqual(Library.objects.filter(name="Test Library").count(), 0)
+        
+        # Check that the Unassigned library was created
+        unassigned_library = Library.objects.get(name="Unassigned")
+        self.assertIsNotNone(unassigned_library)
+        
+        # Check that the book was moved to the Unassigned library
+        unassigned_library_book = LibraryBook.objects.get(book=self.book)
+        self.assertEqual(unassigned_library_book.library, unassigned_library)
+
+    def test_delete_library_with_books_in_multiple_libraries(self):
+        """Test deleting a library when books exist in other libraries"""
+        # Create another library
+        other_library = Library.objects.create(name="Other Library")
+        
+        # Add the book to both libraries
+        library_book1 = LibraryBook.objects.create(
+            library=self.library,
+            book=self.book
+        )
+        library_book2 = LibraryBook.objects.create(
+            library=other_library,
+            book=self.book
+        )
+        
+        # Delete the first library
+        url = reverse('library-detail', args=[self.library.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        
+        # Check that the library is deleted
+        self.assertEqual(Library.objects.filter(name="Test Library").count(), 0)
+        
+        # Check that the book still exists in the other library
+        self.assertTrue(LibraryBook.objects.filter(library=other_library, book=self.book).exists())
+        
+        # Check that the book was removed from the deleted library
+        self.assertFalse(LibraryBook.objects.filter(library=self.library, book=self.book).exists())
+
+    def test_delete_unassigned_library(self):
+        """Test that the Unassigned library cannot be deleted"""
+        # Create the Unassigned library
+        unassigned_library = Library.get_unassigned_library()
+        
+        # Try to delete it
+        url = reverse('library-detail', args=[unassigned_library.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('cannot be deleted', response.data['error'])
+        
+        # Check that the library still exists
+        self.assertTrue(Library.objects.filter(name="Unassigned").exists())
+
     def test_update_library(self):
         """Test updating a library"""
         url = reverse('library-detail', args=[self.library.id])
@@ -107,13 +174,6 @@ class LibraryAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.library.refresh_from_db()
         self.assertEqual(self.library.name, 'Updated Library Name')
-
-    def test_delete_library(self):
-        """Test deleting a library"""
-        url = reverse('library-detail', args=[self.library.id])
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Library.objects.count(), 0)
 
     def test_add_book_to_library(self):
         """Test adding a book to a library"""

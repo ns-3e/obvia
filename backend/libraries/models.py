@@ -16,6 +16,15 @@ class Library(models.Model):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def get_unassigned_library(cls):
+        """Get or create the "Unassigned" library."""
+        unassigned_library, created = cls.objects.get_or_create(
+            name="Unassigned",
+            defaults={'description': 'Books that are not assigned to any specific library'}
+        )
+        return unassigned_library
+
 
 class LibraryBook(models.Model):
     """LibraryBook model for books in a specific library."""

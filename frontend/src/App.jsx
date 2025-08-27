@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Header from './components/Header'
 import Dashboard from './pages/Dashboard'
 import LibraryDetail from './pages/LibraryDetail'
+import Libraries from './pages/Libraries'
 import BookDetail from './pages/BookDetail'
 import AddBook from './pages/AddBook'
 import BulkScan from './pages/BulkScan'
@@ -17,6 +18,7 @@ function App() {
           <main className="container mx-auto px-4 py-8">
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/libraries" element={<Libraries />} />
               <Route path="/libraries/:libraryId" element={<LibraryDetail />} />
               <Route path="/libraries/:libraryId/books/:bookId" element={<BookDetail />} />
               <Route path="/add" element={<AddBook />} />

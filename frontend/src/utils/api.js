@@ -97,6 +97,12 @@ export const libraryBooksAPI = {
   
   // Remove from shelf
   removeFromShelf: (id, shelfName) => api.post(`/library-books/${id}/remove_from_shelf/`, { shelf_name: shelfName }),
+  
+  // Remove book from library (moves to unassigned if not in other libraries)
+  removeFromLibrary: (id) => api.post(`/library-books/${id}/remove_from_library/`),
+  
+  // Permanently delete book from application
+  deleteForever: (id) => api.delete(`/library-books/${id}/delete_forever/`),
 }
 
 export const notesAPI = {

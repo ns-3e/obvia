@@ -11,10 +11,11 @@ const Dashboard = () => {
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchParams] = useSearchParams()
   const searchQuery = searchParams.get('search')
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     loadLibraries()
-  }, [])
+  }, [refreshTrigger])
 
   useEffect(() => {
     if (searchQuery) {
@@ -139,13 +140,22 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Your Libraries
           </h2>
-          <Link
-            to="/add"
-            className="btn-primary flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Book</span>
-          </Link>
+          <div className="flex items-center space-x-3">
+            <Link
+              to="/libraries"
+              className="btn-outline flex items-center space-x-2"
+            >
+              <Library className="h-4 w-4" />
+              <span>Manage Libraries</span>
+            </Link>
+            <Link
+              to="/add"
+              className="btn-primary flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Book</span>
+            </Link>
+          </div>
         </div>
 
         {libraries.length === 0 ? (

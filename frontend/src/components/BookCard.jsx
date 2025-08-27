@@ -1,14 +1,51 @@
 import { Link } from 'react-router-dom'
-import { Star, Tag, Calendar } from 'lucide-react'
+import { Star, Tag, Calendar, MoreVertical } from 'lucide-react'
+import { useState } from 'react'
 
-const BookCard = ({ book, libraryId, libraryBookId }) => {
+const BookCard = ({ book, libraryId, libraryBookId, onDelete, libraryName }) => {
   const { id, title, subtitle, authors, cover_url, tags = [], rating } = book
+  const [showMenu, setShowMenu] = useState(false)
+
+  const handleDeleteClick = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onDelete) {
+      onDelete(book, libraryBookId)
+    }
+  }
 
   return (
-    <Link
-      to={`/libraries/${libraryId}/books/${libraryBookId}`}
-      className="card p-6 hover:shadow-lg transition-shadow duration-200 group"
-    >
+    <div className="card p-6 hover:shadow-lg transition-shadow duration-200 group relative">
+      {/* Delete Menu Button */}
+      <div className="absolute top-2 right-2 z-10">
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setShowMenu(!showMenu)
+          }}
+          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+          title="More options"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+        
+        {showMenu && (
+          <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
+            <button
+              onClick={handleDeleteClick}
+              className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              Delete Book
+            </button>
+          </div>
+        )}
+      </div>
+
+      <Link
+        to={`/libraries/${libraryId}/books/${libraryBookId}`}
+        className="block"
+      >
       <div className="flex flex-col h-full">
         {/* Cover Image */}
         <div className="relative mb-4">
@@ -84,7 +121,8 @@ const BookCard = ({ book, libraryId, libraryBookId }) => {
           )}
         </div>
       </div>
-    </Link>
+      </Link>
+    </div>
   )
 }
 

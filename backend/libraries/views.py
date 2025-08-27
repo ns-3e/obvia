@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 from .models import Library, LibraryBook, LibraryBookTag, ShelfItem
 from .serializers import (
     LibrarySerializer, LibraryBookSerializer, LibraryBookCreateSerializer,
@@ -19,6 +20,43 @@ class LibraryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
     ordering = ['-created_at']
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete library and move books to Unassigned library if they're not in other libraries."""
+        library = self.get_object()
+        
+        # Prevent deletion of the "Unassigned" library
+        if library.name == "Unassigned":
+            return Response(
+                {'error': 'The "Unassigned" library cannot be deleted'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            # Get or create the "Unassigned" library
+            unassigned_library = Library.get_unassigned_library()
+            
+            # Get all books in this library
+            library_books = LibraryBook.objects.filter(library=library)
+            
+            for library_book in library_books:
+                book = library_book.book
+                
+                # Check if this book exists in other libraries
+                other_libraries = LibraryBook.objects.filter(book=book).exclude(library=library)
+                
+                if not other_libraries.exists():
+                    # Book is not in any other library, move it to Unassigned
+                    library_book.library = unassigned_library
+                    library_book.save()
+                else:
+                    # Book exists in other libraries, just remove it from this library
+                    library_book.delete()
+            
+            # Delete the library
+            library.delete()
+            
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'])
     def books(self, request, pk=None):
@@ -116,6 +154,33 @@ class LibraryBookViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
+    def remove_from_library(self, request, pk=None):
+        """Remove a book from the current library and move to Unassigned if not in other libraries."""
+        library_book = self.get_object()
+        book = library_book.book
+        
+        with transaction.atomic():
+            # Check if book exists in other libraries
+            other_libraries = LibraryBook.objects.filter(book=book).exclude(id=library_book.id)
+            
+            if not other_libraries.exists():
+                # Book is not in other libraries, move it to Unassigned
+                unassigned_library = Library.get_unassigned_library()
+                library_book.library = unassigned_library
+                library_book.save()
+                return Response({
+                    'message': f'Book "{book.title}" moved to Unassigned library',
+                    'action': 'moved_to_unassigned'
+                }, status=status.HTTP_200_OK)
+            else:
+                # Book exists in other libraries, just remove it from this library
+                library_book.delete()
+                return Response({
+                    'message': f'Book "{book.title}" removed from library',
+                    'action': 'removed_from_library'
+                }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
     def add_to_shelf(self, request, pk=None):
         """Add the library book to a shelf."""
         library_book = self.get_object()
@@ -156,3 +221,31 @@ class LibraryBookViewSet(viewsets.ModelViewSet):
         
         serializer = LibraryBookSerializer(library_book)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['delete'])
+    def delete_forever(self, request, pk=None):
+        """Permanently delete a book from the application."""
+        library_book = self.get_object()
+        book = library_book.book
+        book_title = book.title
+        
+        with transaction.atomic():
+            # Delete all library book instances for this book
+            LibraryBook.objects.filter(book=book).delete()
+            
+            # Delete related data (notes, ratings, reviews, files)
+            from notes.models import Note, Rating, Review
+            from files.models import BookFile
+            
+            Note.objects.filter(library_book__book=book).delete()
+            Rating.objects.filter(library_book__book=book).delete()
+            Review.objects.filter(library_book__book=book).delete()
+            BookFile.objects.filter(library_book__book=book).delete()
+            
+            # Finally delete the book itself
+            book.delete()
+            
+        return Response({
+            'message': f'Book "{book_title}" permanently deleted from the application',
+            'action': 'deleted_forever'
+        }, status=status.HTTP_200_OK)

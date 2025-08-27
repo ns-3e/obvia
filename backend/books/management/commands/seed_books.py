@@ -15,7 +15,7 @@ class Command(BaseCommand):
             type=str,
             help='List of ISBNs to seed',
             default=[
-                '9780718028806',  # The Bible
+                '1599869772',  # The Art of War
             ]
         )
         parser.add_argument(

@@ -9,12 +9,14 @@ import SemanticSearchPanel from '../components/SemanticSearchPanel'
 import NotesEditor from '../components/NotesEditor'
 import RatingPanel from '../components/RatingPanel'
 import ShelfManager from '../components/ShelfManager'
+import EditBookModal from '../components/EditBookModal'
 
 const BookDetail = () => {
   const { libraryId, bookId: libraryBookId } = useParams()
   const [libraryBook, setLibraryBook] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [showEditModal, setShowEditModal] = useState(false)
 
   useEffect(() => {
     loadLibraryBook()
@@ -81,11 +83,7 @@ const BookDetail = () => {
           )}
         </div>
         <button 
-          onClick={() => {
-            // TODO: Implement edit functionality
-            console.log('Edit button clicked for book:', book.id)
-            alert('Edit functionality coming soon!')
-          }}
+          onClick={() => setShowEditModal(true)}
           className="btn-outline flex items-center space-x-2"
         >
           <Edit className="h-4 w-4" />
@@ -339,6 +337,20 @@ const BookDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Book Modal */}
+      <EditBookModal
+        book={book}
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={(updatedBook) => {
+          // Update the book data in the libraryBook state
+          setLibraryBook(prev => ({
+            ...prev,
+            book: updatedBook
+          }))
+        }}
+      />
     </div>
   )
 }

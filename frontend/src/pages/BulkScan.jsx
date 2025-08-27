@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Square, Trash2, Download, HelpCircle, Library, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, Square, Trash2, Download, HelpCircle, Library, RotateCcw, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { librariesAPI, booksAPI } from '../utils/api';
-import { BrowserMultiFormatReader } from '@zxing/library';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 const BulkScan = () => {
+  const navigate = useNavigate();
   const [isScanning, setIsScanning] = useState(false);
   const [selectedLibrary, setSelectedLibrary] = useState(null);
   const [libraries, setLibraries] = useState([]);
@@ -16,202 +17,369 @@ const BulkScan = () => {
     skipped: 0,
     errors: 0
   });
-  const [cameraError, setCameraError] = useState(null);
   const [showSuccessFlash, setShowSuccessFlash] = useState(false);
   const [showDuplicateFlash, setShowDuplicateFlash] = useState(false);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const codeReaderRef = useRef(null);
-  const scanningIntervalRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [cameraError, setCameraError] = useState(null);
+  const [hasPermission, setHasPermission] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const seenISBNsRef = useRef(new Set());
   const lastDetectionTimeRef = useRef(0);
-  const successAudioRef = useRef(null);
-  const duplicateAudioRef = useRef(null);
-  const navigate = useNavigate();
-
-  // Initialize barcode reader and audio
-  useEffect(() => {
-    try {
-      codeReaderRef.current = new BrowserMultiFormatReader();
-    } catch (error) {
-      console.error('Failed to initialize barcode reader:', error);
-    }
-    
-    // Create audio elements for feedback
-    successAudioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
-    duplicateAudioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
-    
-    // Set audio properties
-    successAudioRef.current.volume = 0.3;
-    duplicateAudioRef.current.volume = 0.2;
-    
-    return () => {
-      if (codeReaderRef.current) {
-        try {
-          codeReaderRef.current.reset();
-        } catch (error) {
-          console.error('Error resetting barcode reader:', error);
-        }
-      }
-    };
-  }, []);
+  const videoRef = useRef(null);
+  const codeReaderRef = useRef(null);
+  const activeStreamRef = useRef(null);
+  const lastDetectedCodeRef = useRef(null);
+  const audioContextRef = useRef(null);
 
   // Load libraries on component mount
   useEffect(() => {
     const loadLibraries = async () => {
       try {
+        setIsLoading(true);
         const response = await librariesAPI.getAll();
-        setLibraries(response.data);
-        if (response.data.length > 0) {
-          setSelectedLibrary(response.data[0].id);
+        const librariesData = response.data.results || response.data || [];
+        setLibraries(librariesData);
+        if (librariesData.length > 0) {
+          setSelectedLibrary(librariesData[0].id);
         }
       } catch (error) {
         console.error('Failed to load libraries:', error);
+        setLibraries([]); // Ensure libraries is always an array
+      } finally {
+        setIsLoading(false);
       }
     };
     loadLibraries();
   }, []);
 
-  // Cleanup camera on unmount
+  // Initialize scanner and audio on component mount
   useEffect(() => {
+    codeReaderRef.current = new BrowserMultiFormatReader();
+    
     return () => {
-      stopScanningLoop();
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+      cleanupCamera();
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
     };
   }, []);
 
-  // Play success chime
-  const playSuccessChime = () => {
-    if (successAudioRef.current) {
-      successAudioRef.current.currentTime = 0;
-      successAudioRef.current.play().catch(e => console.log('Audio play failed:', e));
+  // Initialize audio context on first user interaction
+  const initializeAudio = () => {
+    if (!audioContextRef.current) {
+      try {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('Audio context initialized');
+      } catch (error) {
+        console.warn('Audio context not available:', error);
+      }
     }
+  };
+
+  // Convert ISBN-10 to ISBN-13
+  const convertISBN10To13 = (isbn10) => {
+    try {
+      const cleanIsbn = isbn10.replace(/\D/g, '');
+      
+      if (cleanIsbn.length !== 10) {
+        return null;
+      }
+      
+      const isbn13Base = '978' + cleanIsbn.slice(0, 9);
+      
+      let sum = 0;
+      for (let i = 0; i < 12; i++) {
+        const digit = parseInt(isbn13Base[i]);
+        sum += digit * (i % 2 === 0 ? 1 : 3);
+      }
+      
+      const checkDigit = (10 - (sum % 10)) % 10;
+      const isbn13 = isbn13Base + checkDigit;
+      
+      console.log(`Converted ISBN-10 ${cleanIsbn} to ISBN-13 ${isbn13}`);
+      return isbn13;
+    } catch (error) {
+      console.error('Error converting ISBN-10 to ISBN-13:', error);
+      return null;
+    }
+  };
+
+  const startScanning = async () => {
+    try {
+      // Initialize audio on first user interaction
+      initializeAudio();
+      
+      setCameraError(null);
+      setScanStatus('Requesting camera access...');
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      setHasPermission(true);
+      activeStreamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      setScanStatus('Camera ready - scanning for barcodes...');
+      
+      // Start scanning with improved detection and format hints
+      await codeReaderRef.current.decodeFromVideoDevice(
+        undefined,
+        videoRef.current,
+        (result, error) => {
+          if (result && !isProcessing) {
+            const detectedCode = result.getText();
+            console.log('Barcode detected:', detectedCode, 'Format:', result.getBarcodeFormat());
+            
+            // Clean the detected code (remove spaces, dashes, etc.)
+            const cleanCode = detectedCode.replace(/[-\s]/g, '');
+            
+            // Prevent duplicate detections
+            if (lastDetectedCodeRef.current === cleanCode) {
+              console.log('Duplicate detection ignored:', cleanCode);
+              return;
+            }
+            
+            // Validate ISBN-13 format (13 digits starting with 978 or 979)
+            if (/^97[89]\d{10}$/.test(cleanCode)) {
+              console.log('Valid ISBN-13 detected:', cleanCode);
+              lastDetectedCodeRef.current = cleanCode;
+              setIsProcessing(true);
+              handleISBNDetection(cleanCode);
+            } else if (/^\d{10}$/.test(cleanCode)) {
+              // Convert ISBN-10 to ISBN-13 if needed
+              console.log('ISBN-10 detected, converting to ISBN-13:', cleanCode);
+              const isbn13 = convertISBN10To13(cleanCode);
+              if (isbn13) {
+                lastDetectedCodeRef.current = isbn13;
+                setIsProcessing(true);
+                handleISBNDetection(isbn13);
+              }
+            } else if (/^\d{5}$/.test(cleanCode)) {
+              // Ignore 5-digit barcodes (price codes, etc.)
+              console.log('Ignoring 5-digit barcode:', cleanCode);
+            } else {
+              console.log('Invalid barcode format:', cleanCode);
+            }
+          }
+          if (error && error.name !== 'NotFoundException') {
+            console.error('Scanning error:', error);
+          }
+        },
+        {
+          // Add format hints to improve EAN-13 detection
+          formats: ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E']
+        }
+      );
+      
+      setIsScanning(true);
+    } catch (err) {
+      console.error('Camera error:', err);
+      if (err.name === 'NotAllowedError') {
+        setHasPermission(false);
+        setCameraError('Camera permission denied. Please allow camera access to scan barcodes.');
+      } else {
+        setCameraError('Failed to access camera. Please check your camera permissions.');
+      }
+      setIsScanning(false);
+    }
+  };
+
+  const stopScanning = () => {
+    console.log('Stopping scanning and cutting camera access');
+    try {
+      // First, reset the barcode reader to stop any ongoing scanning
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+        // Force stop any ongoing video processing
+        codeReaderRef.current.stopAsyncDecode();
+      }
+      
+      // Stop ALL camera tracks from active stream
+      if (activeStreamRef.current) {
+        const tracks = activeStreamRef.current.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          console.log('Active stream track stopped:', track.kind);
+        });
+        activeStreamRef.current = null;
+      }
+      
+      // Stop ALL camera tracks from video element
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          console.log('Video element track stopped:', track.kind);
+        });
+        videoRef.current.srcObject = null;
+      }
+      
+      // Completely disable video element
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.src = '';
+        videoRef.current.load();
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+        // Remove all event listeners
+        videoRef.current.onloadedmetadata = null;
+        videoRef.current.onplay = null;
+        videoRef.current.onpause = null;
+      }
+      
+      // Force garbage collection of any remaining stream references
+      if (typeof window !== 'undefined' && window.gc) {
+        window.gc();
+      }
+      
+      // Reset camera state
+      setHasPermission(null);
+      setCameraError(null);
+      
+    } catch (error) {
+      console.error('Error stopping scanning:', error);
+    }
+    
+    setIsScanning(false);
+    setIsProcessing(false);
+    setScanStatus('Camera access completely stopped');
+  };
+
+  const cleanupCamera = () => {
+    console.log('Cleaning up camera access');
+    try {
+      if (activeStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('Active stream track stopped:', track.kind);
+        });
+        activeStreamRef.current = null;
+      }
+      
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          console.log('Video element track stopped:', track.kind);
+        });
+        videoRef.current.srcObject = null;
+      }
+    } catch (error) {
+      console.error('Error during camera cleanup:', error);
+    }
+  };
+
+  // Play success sound (pleasant chime)
+  const playSuccessSound = () => {
+    if (!audioContextRef.current) return;
+    
+    try {
+      const oscillator = audioContextRef.current.createOscillator();
+      const gainNode = audioContextRef.current.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContextRef.current.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContextRef.current.currentTime);
+      oscillator.frequency.setValueAtTime(1000, audioContextRef.current.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(800, audioContextRef.current.currentTime + 0.2);
+      
+      gainNode.gain.setValueAtTime(0.3, audioContextRef.current.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 0.3);
+      
+      oscillator.start(audioContextRef.current.currentTime);
+      oscillator.stop(audioContextRef.current.currentTime + 0.3);
+    } catch (error) {
+      console.warn('Could not play success sound:', error);
+    }
+  };
+
+  // Play error sound (lower tone)
+  const playErrorSound = () => {
+    if (!audioContextRef.current) return;
+    
+    try {
+      const oscillator = audioContextRef.current.createOscillator();
+      const gainNode = audioContextRef.current.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContextRef.current.destination);
+      
+      oscillator.frequency.setValueAtTime(400, audioContextRef.current.currentTime);
+      oscillator.frequency.setValueAtTime(300, audioContextRef.current.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.2, audioContextRef.current.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 0.2);
+      
+      oscillator.start(audioContextRef.current.currentTime);
+      oscillator.stop(audioContextRef.current.currentTime + 0.2);
+    } catch (error) {
+      console.warn('Could not play error sound:', error);
+    }
+  };
+
+  // Play neutral sound (for already existing books)
+  const playNeutralSound = () => {
+    if (!audioContextRef.current) return;
+    
+    try {
+      const oscillator = audioContextRef.current.createOscillator();
+      const gainNode = audioContextRef.current.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContextRef.current.destination);
+      
+      oscillator.frequency.setValueAtTime(500, audioContextRef.current.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.1, audioContextRef.current.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 0.15);
+      
+      oscillator.start(audioContextRef.current.currentTime);
+      oscillator.stop(audioContextRef.current.currentTime + 0.15);
+    } catch (error) {
+      console.warn('Could not play neutral sound:', error);
+    }
+  };
+
+  // Play duplicate sound (short beep)
+  const playDuplicateSound = () => {
+    if (!audioContextRef.current) return;
+    
+    try {
+      const oscillator = audioContextRef.current.createOscillator();
+      const gainNode = audioContextRef.current.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContextRef.current.destination);
+      
+      oscillator.frequency.setValueAtTime(600, audioContextRef.current.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.15, audioContextRef.current.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 0.1);
+      
+      oscillator.start(audioContextRef.current.currentTime);
+      oscillator.stop(audioContextRef.current.currentTime + 0.1);
+    } catch (error) {
+      console.warn('Could not play duplicate sound:', error);
+    }
+  };
+
+  // Play success chime (visual + audio)
+  const playSuccessChime = () => {
     setShowSuccessFlash(true);
     setTimeout(() => setShowSuccessFlash(false), 300);
+    playSuccessSound();
   };
 
-  // Play duplicate tick
+  // Play duplicate tick (visual + audio)
   const playDuplicateTick = () => {
-    if (duplicateAudioRef.current) {
-      duplicateAudioRef.current.currentTime = 0;
-      duplicateAudioRef.current.play().catch(e => console.log('Audio play failed:', e));
-    }
     setShowDuplicateFlash(true);
     setTimeout(() => setShowDuplicateFlash(false), 200);
-  };
-
-  // ISBN validation and normalization
-  const validateAndNormalizeISBN = (code) => {
-    // Remove any non-digit characters
-    const digits = code.replace(/\D/g, '');
-    
-    // Handle ISBN-13 (978 or 979 prefix)
-    if (digits.length === 13 && (digits.startsWith('978') || digits.startsWith('979'))) {
-      // Validate check digit
-      const checkDigit = parseInt(digits[12]);
-      const sum = digits.slice(0, 12).split('').reduce((acc, digit, index) => {
-        const num = parseInt(digit);
-        return acc + (num * (index % 2 === 0 ? 1 : 3));
-      }, 0);
-      const calculatedCheckDigit = (10 - (sum % 10)) % 10;
-      
-      if (checkDigit === calculatedCheckDigit) {
-        return digits;
-      }
-    }
-    
-    // Handle ISBN-10 (convert to ISBN-13)
-    if (digits.length === 10) {
-      // Validate ISBN-10 check digit
-      const checkDigit = digits[9] === 'X' ? 10 : parseInt(digits[9]);
-      const sum = digits.slice(0, 9).split('').reduce((acc, digit, index) => {
-        const num = parseInt(digit);
-        return acc + (num * (10 - index));
-      }, 0) + checkDigit;
-      
-      if (sum % 11 === 0) {
-        // Convert to ISBN-13 by adding 978 prefix and recalculating check digit
-        const isbn13Base = '978' + digits.slice(0, 9);
-        const sum13 = isbn13Base.split('').reduce((acc, digit, index) => {
-          const num = parseInt(digit);
-          return acc + (num * (index % 2 === 0 ? 1 : 3));
-        }, 0);
-        const newCheckDigit = (10 - (sum13 % 10)) % 10;
-        return isbn13Base + newCheckDigit;
-      }
-    }
-    
-    // Handle UPC-A (convert to ISBN-13 when safe)
-    if (digits.length === 12) {
-      // Only convert UPC-A to ISBN-13 if it's a book (starts with 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-      // Books typically start with 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 in UPC-A
-      const firstDigit = parseInt(digits[0]);
-      if (firstDigit >= 0 && firstDigit <= 9) {
-        // Validate UPC-A check digit
-        const checkDigit = parseInt(digits[11]);
-        const sum = digits.slice(0, 11).split('').reduce((acc, digit, index) => {
-          const num = parseInt(digit);
-          return acc + (num * (index % 2 === 0 ? 3 : 1));
-        }, 0);
-        const calculatedCheckDigit = (10 - (sum % 10)) % 10;
-        
-        if (checkDigit === calculatedCheckDigit) {
-          // Convert to ISBN-13 by adding 978 prefix and recalculating check digit
-          const isbn13Base = '978' + digits.slice(0, 11);
-          const sum13 = isbn13Base.split('').reduce((acc, digit, index) => {
-            const num = parseInt(digit);
-            return acc + (num * (index % 2 === 0 ? 1 : 3));
-          }, 0);
-          const newCheckDigit = (10 - (sum13 % 10)) % 10;
-          return isbn13Base + newCheckDigit;
-        }
-      }
-    }
-    
-    return null;
-  };
-
-  // Barcode detection loop
-  const startScanningLoop = () => {
-    if (!videoRef.current || !codeReaderRef.current) return;
-
-    const scanFrame = async () => {
-      try {
-        const result = await codeReaderRef.current.decodeFromVideoElement(videoRef.current);
-        
-        if (result && result.getText()) {
-          const detectedCode = result.getText();
-          console.log('Detected barcode:', detectedCode);
-          
-          // Validate and normalize ISBN
-          const normalizedISBN = validateAndNormalizeISBN(detectedCode);
-          
-          if (normalizedISBN) {
-            handleISBNDetection(normalizedISBN);
-          } else {
-            console.log('Invalid or non-book barcode detected:', detectedCode);
-            setScanStatus(`Invalid barcode: ${detectedCode}`);
-          }
-        }
-      } catch (error) {
-        // Ignore errors - they're expected when no barcode is visible
-        if (error.name !== 'NotFoundException') {
-          console.log('Scanning error:', error.message);
-        }
-      }
-    };
-
-    // Scan at ~8 FPS (every 125ms)
-    scanningIntervalRef.current = setInterval(scanFrame, 125);
-  };
-
-  const stopScanningLoop = () => {
-    if (scanningIntervalRef.current) {
-      clearInterval(scanningIntervalRef.current);
-      scanningIntervalRef.current = null;
-    }
+    playDuplicateSound();
   };
 
   // Handle ISBN detection with debouncing
@@ -242,6 +410,12 @@ const BulkScan = () => {
     
     // Add to queue and start import process
     addToQueue(isbn);
+    
+    // Reset processing flag after a short delay to allow next scan
+    setTimeout(() => {
+      setIsProcessing(false);
+      lastDetectedCodeRef.current = null;
+    }, 1000);
   };
 
   // Add book to queue and start import
@@ -316,31 +490,47 @@ const BulkScan = () => {
     } catch (error) {
       console.error('Import error:', error);
       
-      let errorMessage = 'Unknown error occurred';
-      if (error.response?.status === 409) {
-        errorMessage = 'Book already exists in library';
+      // Check for "book already exists" errors (both 409 and 400 with specific message)
+      const isAlreadyExistsError = 
+        error.response?.status === 409 || 
+        (error.response?.status === 400 && 
+         error.response?.data?.error?.includes('already in this library'));
+      
+      if (isAlreadyExistsError) {
+        // Book already exists - this is not an error, just a skip
+        setScanQueue(prev => prev.map(item => 
+          item.isbn === queueItem.isbn 
+            ? { ...item, status: 'skipped', error: 'Book is already in library' }
+            : item
+        ));
         setStats(prev => ({ ...prev, skipped: prev.skipped + 1 }));
-      } else if (error.response?.status === 404) {
-        errorMessage = 'Book not found in database';
-        setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
-      } else if (error.response?.status >= 500) {
-        errorMessage = 'Server error - please try again';
-        setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
-      } else if (error.message.includes('Network Error')) {
-        errorMessage = 'Network error - check connection';
-        setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
+        setScanStatus(`Book is already in library`);
+        playNeutralSound(); // Use neutral sound for already existing books
       } else {
+        // Handle actual errors
+        let errorMessage = 'Unknown error occurred';
+        if (error.response?.status === 404) {
+          errorMessage = 'Book not found in database';
+        } else if (error.response?.status >= 500) {
+          errorMessage = 'Server error - please try again';
+        } else if (error.message.includes('Network Error')) {
+          errorMessage = 'Network error - check connection';
+        } else if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        }
+        
         setStats(prev => ({ ...prev, errors: prev.errors + 1 }));
+        
+        // Update status to error
+        setScanQueue(prev => prev.map(item => 
+          item.isbn === queueItem.isbn 
+            ? { ...item, status: 'error', error: errorMessage }
+            : item
+        ));
+        
+        setScanStatus(`Error: ${errorMessage}`);
+        playErrorSound();
       }
-      
-      // Update status to error
-      setScanQueue(prev => prev.map(item => 
-        item.isbn === queueItem.isbn 
-          ? { ...item, status: 'error', error: errorMessage }
-          : item
-      ));
-      
-      setScanStatus(`Error: ${errorMessage}`);
     }
   };
 
@@ -357,101 +547,6 @@ const BulkScan = () => {
       
       // Start import process again
       setTimeout(() => importBook(retryItem), 100);
-    }
-  };
-
-  const startCamera = async () => {
-    try {
-      setCameraError(null);
-      setScanStatus('Requesting camera access...');
-
-      // Request camera access with constraints
-      const constraints = {
-        video: {
-          facingMode: 'environment', // Prefer back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-
-      setScanStatus('Camera ready - scanning for barcodes...');
-      return true;
-    } catch (error) {
-      console.error('Camera access error:', error);
-      setCameraError(error.message);
-      
-      if (error.name === 'NotAllowedError') {
-        setScanStatus('Camera access denied. Please allow camera permissions and try again.');
-      } else if (error.name === 'NotFoundError') {
-        setScanStatus('No camera found. Please connect a camera and try again.');
-      } else if (error.name === 'NotReadableError') {
-        setScanStatus('Camera is in use by another application. Please close other apps using the camera.');
-      } else {
-        setScanStatus(`Camera error: ${error.message}`);
-      }
-      
-      return false;
-    }
-  };
-
-  const stopCamera = () => {
-    stopScanningLoop();
-    
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
-        track.stop();
-      });
-      streamRef.current = null;
-    }
-    
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    
-    setScanStatus('Camera stopped');
-  };
-
-  const handleStartScanning = async () => {
-    if (!selectedLibrary) {
-      alert('Please select a target library first');
-      return;
-    }
-
-    setIsScanning(true);
-    const success = await startCamera();
-    
-    if (success) {
-      // Start barcode detection loop after camera is ready
-      setTimeout(() => {
-        startScanningLoop();
-      }, 1000);
-    } else {
-      setIsScanning(false);
-    }
-  };
-
-  const handleStopScanning = () => {
-    setIsScanning(false);
-    stopCamera();
-  };
-
-  const handleRetryCamera = async () => {
-    setCameraError(null);
-    const success = await startCamera();
-    if (!success) {
-      setIsScanning(false);
-    } else {
-      setTimeout(() => {
-        startScanningLoop();
-      }, 1000);
     }
   };
 
@@ -492,6 +587,13 @@ const BulkScan = () => {
     setScanQueue(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleManualTest = () => {
+    // Test with a sample ISBN
+    const testISBN = '9780141439518'; // Example ISBN-13
+    console.log('Manual test: simulating barcode detection with', testISBN);
+    handleISBNDetection(testISBN);
+  };
+
   const handleShowHelp = () => {
     alert(`Bulk Scanner Help:
 
@@ -506,27 +608,26 @@ Tips:
 - Ensure good lighting
 - Hold books steady for 1-2 seconds
 - Keep barcode clearly visible
-- Distance: 6-12 inches from camera`);
+- Distance: 6-12 inches from camera
+- Works with ISBN-10, ISBN-13, and UPC-A barcodes
+
+Troubleshooting:
+- If scanning isn't working, try the "Test Scan" button
+- Check browser console for error messages
+- Ensure camera permissions are granted
+- Try different lighting conditions`);
   };
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-      
-      if (e.key === 'Enter' && !isScanning && selectedLibrary) {
-        handleStartScanning();
-      } else if (e.key === 'Escape' && isScanning) {
-        handleStopScanning();
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        handleClearQueue();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isScanning, selectedLibrary]);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading libraries...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -574,7 +675,8 @@ Tips:
                 className="input max-w-xs"
                 disabled={isScanning}
               >
-                {libraries.map(library => (
+                <option value="">Select a library</option>
+                {(libraries || []).map(library => (
                   <option key={library.id} value={library.id}>
                     {library.name}
                   </option>
@@ -584,7 +686,7 @@ Tips:
 
             <div className="flex items-center space-x-3">
               <button
-                onClick={isScanning ? handleStopScanning : handleStartScanning}
+                onClick={isScanning ? stopScanning : startScanning}
                 disabled={!selectedLibrary}
                 className={`btn-primary flex items-center space-x-2 ${
                   !selectedLibrary ? 'opacity-50 cursor-not-allowed' : ''
@@ -620,6 +722,40 @@ Tips:
                 <Download size={16} />
                 <span>Export CSV</span>
               </button>
+
+              <button
+                onClick={handleManualTest}
+                className="btn-outline flex items-center space-x-2"
+                title="Test scanning functionality"
+              >
+                <Camera size={16} />
+                <span>Test Scan</span>
+              </button>
+
+              {scanQueue.length > 0 && (
+                <button
+                  onClick={() => {
+                    // Stop scanning first, then hard redirect
+                    if (isScanning) {
+                      stopScanning();
+                    }
+                    // Ensure we have a valid library ID
+                    if (selectedLibrary) {
+                      // Small delay to ensure cleanup completes, then hard redirect
+                      setTimeout(() => {
+                        window.location.href = `/libraries/${selectedLibrary}`;
+                      }, 200);
+                    } else {
+                      console.error('No library selected for navigation');
+                    }
+                  }}
+                  className="btn-primary flex items-center space-x-2"
+                  title="Go to library with scanned books"
+                >
+                  <Library size={16} />
+                  <span>Done - Go to Library</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -639,18 +775,25 @@ Tips:
             </span>
           </div>
 
-          {/* Keyboard shortcuts hint */}
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Keyboard shortcuts: Enter to start, Esc to stop, Cmd/Ctrl+K to clear queue
+          {/* Status */}
+          <div className="mt-2 flex items-center justify-between">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Status: {scanStatus}
+            </div>
+            {isScanning && (
+              <div className="text-xs text-blue-500 dark:text-blue-400">
+                🔄 Scanning...
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Scanner Layout */}
+        {/* Scanner and Queue Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left: Camera Preview */}
+          {/* Left: Scanner */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-soft p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Camera Preview
+              Scanner
             </h2>
             
             <div className="relative bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden aspect-video">
@@ -662,18 +805,6 @@ Tips:
                 muted
               />
               
-              {/* Scanning Overlay */}
-              {isScanning && !cameraError && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="border-2 border-blue-500 border-dashed rounded-lg w-64 h-32 relative">
-                    <div className="absolute inset-0 bg-blue-500 bg-opacity-10"></div>
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Success Flash */}
               {showSuccessFlash && (
                 <div className="absolute inset-0 bg-green-500 bg-opacity-20 animate-pulse"></div>
@@ -692,11 +823,34 @@ Tips:
                     <p className="text-lg font-medium mb-2">Camera Error</p>
                     <p className="text-sm mb-4">{cameraError}</p>
                     <button
-                      onClick={handleRetryCamera}
+                      onClick={startScanning}
                       className="btn-primary"
                     >
                       Retry Camera
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Scanner Not Started Overlay */}
+              {!isScanning && !cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75">
+                  <div className="text-center text-white p-6">
+                    <Camera size={48} className="mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium mb-2">Scanner Ready</p>
+                    <p className="text-sm mb-4">Click "Start Scanning" to begin</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Scanning Overlay */}
+              {isScanning && !cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="border-2 border-blue-500 border-dashed rounded-lg w-64 h-32 relative">
+                    <div className="absolute inset-0 bg-blue-500 bg-opacity-5"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -713,10 +867,11 @@ Tips:
               <p>• Hold books steady for 1-2 seconds</p>
               <p>• Ensure good lighting and clear barcode visibility</p>
               <p>• Distance: 6-12 inches from camera</p>
+              <p>• Supports ISBN-10, ISBN-13, and UPC-A barcodes</p>
             </div>
           </div>
 
-          {/* Right: Live Queue Panel */}
+          {/* Right: Queue Panel */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-soft p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Scan Queue ({scanQueue.length})
@@ -796,18 +951,45 @@ Tips:
                         className="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
                         title="Remove from queue"
                       >
-                        <Trash2 size={14} />
+                        <X size={14} />
                       </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+                                         </div>
+                   </div>
+                 ))
+               )}
+             </div>
+             
+             {/* Done Button */}
+             {scanQueue.length > 0 && (
+               <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                 <button
+                   onClick={() => {
+                     // Stop scanning first, then hard redirect
+                     if (isScanning) {
+                       stopScanning();
+                     }
+                     // Ensure we have a valid library ID
+                     if (selectedLibrary) {
+                       // Small delay to ensure cleanup completes, then hard redirect
+                       setTimeout(() => {
+                         window.location.href = `/libraries/${selectedLibrary}`;
+                       }, 200);
+                     } else {
+                       console.error('No library selected for navigation');
+                     }
+                   }}
+                   className="w-full btn-primary flex items-center justify-center space-x-2"
+                 >
+                   <Library size={16} />
+                   <span>Done - Go to Library ({libraries.find(l => l.id === selectedLibrary)?.name || 'Selected Library'})</span>
+                 </button>
+               </div>
+             )}
+           </div>
+         </div>
+       </div>
+     </div>
+   );
+ };
 
 export default BulkScan;
