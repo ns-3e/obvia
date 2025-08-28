@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, X, Save } from 'lucide-react'
+import { Plus, Edit, Trash2, X, Save, Download, Upload, Move, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { librariesAPI } from '../utils/api'
 import ConfirmDialog from './ConfirmDialog'
+import LibraryImportExport from './LibraryImportExport'
+import MassBookOperations from './MassBookOperations'
 
 const LibraryManager = ({ onLibraryChange }) => {
   const [libraries, setLibraries] = useState([])
@@ -11,6 +14,7 @@ const LibraryManager = ({ onLibraryChange }) => {
   const [formData, setFormData] = useState({ name: '', description: '' })
   const [error, setError] = useState('')
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, library: null })
+  const [activeTab, setActiveTab] = useState('manage') // 'manage', 'import-export', or 'mass-operations'
 
   useEffect(() => {
     loadLibraries()
@@ -86,6 +90,16 @@ const LibraryManager = ({ onLibraryChange }) => {
     setError('')
   }
 
+  const handleImportComplete = () => {
+    loadLibraries()
+    if (onLibraryChange) onLibraryChange()
+  }
+
+  const handleMassOperationComplete = () => {
+    loadLibraries()
+    if (onLibraryChange) onLibraryChange()
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -100,126 +114,191 @@ const LibraryManager = ({ onLibraryChange }) => {
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           Manage Libraries
         </h2>
-        {!showAddForm && (
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setShowAddForm(true)}
-            className="btn-primary flex items-center space-x-2"
+            onClick={() => setActiveTab('manage')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'manage'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
           >
-            <Plus className="h-4 w-4" />
-            <span>Add Library</span>
+            Manage Libraries
           </button>
-        )}
+          <button
+            onClick={() => setActiveTab('import-export')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'import-export'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
+          >
+            Import & Export
+          </button>
+          <button
+            onClick={() => setActiveTab('mass-operations')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'mass-operations'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
+          >
+            Mass Operations
+          </button>
+        </nav>
       </div>
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md">
-          {error}
-        </div>
-      )}
-
-      {showAddForm && (
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-              {editingLibrary ? 'Edit Library' : 'Add New Library'}
-            </h3>
-            <button
-              onClick={handleCancel}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <X className="h-5 w-5" />
-            </button>
+      {/* Tab Content */}
+      {activeTab === 'manage' ? (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            {!showAddForm && (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Library</span>
+              </button>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Library Name *
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="input-field w-full"
-                placeholder="Enter library name"
-                required
-              />
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md">
+              {error}
             </div>
+          )}
 
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Description
-              </label>
-              <textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="input-field w-full"
-                rows="3"
-                placeholder="Enter library description (optional)"
-              />
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <button type="submit" className="btn-primary flex items-center space-x-2">
-                <Save className="h-4 w-4" />
-                <span>{editingLibrary ? 'Update Library' : 'Create Library'}</span>
-              </button>
-              <button type="button" onClick={handleCancel} className="btn-secondary">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {libraries.map((library) => (
-          <div key={library.id} className="card p-4">
-            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                      {library.name}
-                    </h3>
-                    {library.is_system && (
-                      <span className="text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                        System
-                      </span>
-                    )}
-                  </div>
-                  {library.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {library.description}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {library.library_books_count || 0} books
-                  </p>
-                </div>
-              <div className="flex items-center space-x-2">
+          {showAddForm && (
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  {editingLibrary ? 'Edit Library' : 'Add New Library'}
+                </h3>
                 <button
-                  onClick={() => handleEdit(library)}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
-                  title="Edit library"
+                  onClick={handleCancel}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
-                  <Edit className="h-4 w-4" />
+                  <X className="h-5 w-5" />
                 </button>
-                {!library.is_system && (
-                  <button
-                    onClick={() => handleDelete(library)}
-                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
-                    title="Delete library"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
               </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Library Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="input-field w-full"
+                    placeholder="Enter library name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="input-field w-full"
+                    rows="3"
+                    placeholder="Enter library description (optional)"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <button type="submit" className="btn-primary flex items-center space-x-2">
+                    <Save className="h-4 w-4" />
+                    <span>{editingLibrary ? 'Update Library' : 'Create Library'}</span>
+                  </button>
+                  <button type="button" onClick={handleCancel} className="btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
+          )}
+
+          <div className="space-y-3">
+            {libraries.map((library) => (
+                             <Link key={library.id} to={`/libraries/${library.id}`}>
+                                 <div className="card p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md transition-all duration-200 group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                                                 <h3 className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                           {library.name}
+                         </h3>
+                        {library.is_system && (
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                            System
+                          </span>
+                        )}
+                      </div>
+                      {library.description && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {library.description}
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {library.library_books_count || 0} books
+                      </p>
+                    </div>
+                                         <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                       <button
+                         onClick={(e) => {
+                           e.preventDefault()
+                           e.stopPropagation()
+                           handleEdit(library)
+                         }}
+                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                         title="Edit library"
+                       >
+                         <Edit className="h-4 w-4" />
+                       </button>
+                       {!library.is_system && (
+                         <button
+                           onClick={(e) => {
+                             e.preventDefault()
+                             e.stopPropagation()
+                             handleDelete(library)
+                           }}
+                           className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+                           title="Delete library"
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </button>
+                       )}
+                       <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                     </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ) : activeTab === 'import-export' ? (
+        <LibraryImportExport 
+          libraries={libraries} 
+          onImportComplete={handleImportComplete}
+        />
+      ) : (
+        <MassBookOperations 
+          libraries={libraries} 
+          onOperationComplete={handleMassOperationComplete}
+        />
+      )}
 
       {/* Confirm Delete Dialog */}
       <ConfirmDialog

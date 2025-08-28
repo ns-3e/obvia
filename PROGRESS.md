@@ -26,6 +26,9 @@ obvia/
   README.md
   PROGRESS.md
   .env.example
+  ArchitectureDesignDoc.md
+  Bugs.md
+  Enhancements.md
 
 
 	•	✅ Add .gitignore and sensible defaults for both apps.
@@ -46,6 +49,11 @@ obvia/
 	•	✅ Add minimal README.md with one-shot startup instructions:
 	•	docker compose up --build
 	•	Frontend on http://localhost:5173, API on http://localhost:8000.
+	•	✅ Create comprehensive documentation structure:
+	•	ArchitectureDesignDoc.md - High-level design and architecture
+	•	Bugs.md - Bug tracking and resolution
+	•	Enhancements.md - Future feature tracking
+	•	Module Interface.md files for major components
 
 ⸻
 

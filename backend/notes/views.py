@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.shortcuts import get_object_or_404
-from django.db import transaction
+from django.db import transaction, models
 import markdown
 import bleach
 import logging
@@ -202,7 +202,7 @@ class RatingViewSet(viewsets.ModelViewSet):
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['library_book', 'rating']
+    filterset_fields = ['library_book', 'rating', 'category']
     ordering_fields = ['created_at', 'rating']
     ordering = ['-created_at']
 
@@ -213,6 +213,62 @@ class RatingViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(library_book_id=library_book_id)
         return queryset
     
+    def create(self, request, *args, **kwargs):
+        """Create or update a rating. If same rating exists, delete it (toggle behavior)."""
+        library_book_id = request.data.get('library_book')
+        rating_value = request.data.get('rating')
+        category = request.data.get('category', 'overall')
+        
+        if not library_book_id or not rating_value:
+            return Response({
+                'error': 'library_book and rating are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            rating_value = int(rating_value)
+            if not 1 <= rating_value <= 5:
+                return Response({'error': 'Rating must be between 1 and 5'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check if a rating already exists for this book and category
+            existing_rating = Rating.objects.filter(
+                library_book_id=library_book_id,
+                category=category
+            ).first()
+            
+            if existing_rating:
+                if existing_rating.rating == rating_value:
+                    # Same rating clicked - delete it (toggle off)
+                    existing_rating.delete()
+                    return Response({
+                        'message': 'Rating removed',
+                        'rating': None,
+                        'deleted': True
+                    }, status=status.HTTP_200_OK)
+                else:
+                    # Different rating - update it
+                    existing_rating.rating = rating_value
+                    existing_rating.category = category  # Ensure category is set correctly
+                    existing_rating.save()
+                    serializer = self.get_serializer(existing_rating)
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                # Create new rating
+                rating_data = {
+                    'library_book': library_book_id,
+                    'rating': rating_value,
+                    'category': category
+                }
+                serializer = self.get_serializer(data=rating_data)
+                serializer.is_valid(raise_exception=True)
+                rating = serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                
+        except ValueError:
+            return Response({'error': 'Rating must be a number'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Rating creation failed: {e}")
+            return Response({'error': 'Failed to create rating'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     @action(detail=False, methods=['get'])
     def summary(self, request):
         """Get rating summary for a library book."""
@@ -222,31 +278,28 @@ class RatingViewSet(viewsets.ModelViewSet):
         
         try:
             # Get overall rating
-            overall_rating = Rating.objects.filter(library_book_id=library_book_id).first()
+            overall_rating = Rating.objects.filter(
+                library_book_id=library_book_id,
+                category='overall'
+            ).first()
             
-            # Get category ratings (via tags)
-            from books.models import Tag
-            from libraries.models import LibraryBookTag
-            
+            # Get category ratings (exclude overall ratings)
             category_ratings = []
-            library_book_tags = LibraryBookTag.objects.filter(library_book_id=library_book_id)
+            category_ratings_queryset = Rating.objects.filter(
+                library_book_id=library_book_id
+            ).exclude(category='overall')
             
-            for lb_tag in library_book_tags:
-                # Check if there's a rating associated with this tag
-                tag_rating = Rating.objects.filter(
-                    library_book_id=library_book_id,
-                    category=lb_tag.tag.name
-                ).first()
-                
-                if tag_rating:
-                    category_ratings.append({
-                        'category': lb_tag.tag.name,
-                        'rating': tag_rating.rating,
-                        'created_at': tag_rating.created_at
-                    })
+            for rating in category_ratings_queryset:
+                category_ratings.append({
+                    'category': rating.category,
+                    'rating': rating.rating,
+                    'id': rating.id,
+                    'created_at': rating.created_at
+                })
             
             return Response({
                 'overall_rating': overall_rating.rating if overall_rating else None,
+                'overall_rating_id': overall_rating.id if overall_rating else None,
                 'category_ratings': category_ratings,
                 'total_ratings': Rating.objects.filter(library_book_id=library_book_id).count()
             })
@@ -255,42 +308,7 @@ class RatingViewSet(viewsets.ModelViewSet):
             logger.error(f"Rating summary failed: {e}")
             return Response({'error': 'Failed to get rating summary'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    @action(detail=False, methods=['post'])
-    def category_rating(self, request):
-        """Set a category-specific rating."""
-        library_book_id = request.data.get('library_book_id')
-        category = request.data.get('category')
-        rating_value = request.data.get('rating')
-        
-        if not all([library_book_id, category, rating_value]):
-            return Response({
-                'error': 'library_book_id, category, and rating are required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            rating_value = int(rating_value)
-            if not 1 <= rating_value <= 5:
-                return Response({'error': 'Rating must be between 1 and 5'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Create or update category rating
-            rating, created = Rating.objects.update_or_create(
-                library_book_id=library_book_id,
-                category=category,
-                defaults={'rating': rating_value}
-            )
-            
-            return Response({
-                'id': rating.id,
-                'category': rating.category,
-                'rating': rating.rating,
-                'created': created
-            })
-            
-        except ValueError:
-            return Response({'error': 'Rating must be a number'}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Category rating failed: {e}")
-            return Response({'error': 'Failed to set category rating'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

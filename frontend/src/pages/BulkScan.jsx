@@ -499,7 +499,7 @@ const BulkScan = () => {
       ));
       
       // First, ingest the book to get metadata
-      const ingestResponse = await booksAPI.ingest(queueItem.isbn);
+      const ingestResponse = await booksAPI.ingest({ isbn: queueItem.isbn });
       const bookData = ingestResponse.data;
       
       // Update queue item with book data
@@ -639,13 +639,6 @@ const BulkScan = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Test function for development
-  const testScan = () => {
-    // Test with a sample ISBN
-    const testISBN = '9780141439518'; // Example ISBN-13
-    handleISBNDetection(testISBN);
-  };
-
   if (libraries.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -747,14 +740,6 @@ const BulkScan = () => {
             >
               <Download size={16} />
               <span>Export CSV</span>
-            </button>
-            
-            <button
-              onClick={testScan}
-              className="btn-secondary flex items-center space-x-2"
-            >
-              <Camera size={16} />
-              <span>Test Scan</span>
             </button>
           </div>
         </div>

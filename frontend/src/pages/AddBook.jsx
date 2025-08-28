@@ -52,7 +52,7 @@ const AddBook = () => {
       setError(null)
       setBookData(null)
 
-      const response = await booksAPI.lookup(isbn)
+      const response = await booksAPI.lookup({ isbn })
       setBookData(response.data)
     } catch (error) {
       console.error('Book lookup failed:', error)
@@ -73,7 +73,7 @@ const AddBook = () => {
       setError(null)
 
       // Ingest the book
-      const bookResponse = await booksAPI.ingest(isbn)
+      const bookResponse = await booksAPI.ingest({ isbn })
       const book = bookResponse.data
 
       // Add to selected library

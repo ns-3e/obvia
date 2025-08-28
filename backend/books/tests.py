@@ -187,19 +187,19 @@ class ShelfAPITest(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Check that our test shelf is in the results
-        shelf_names = [shelf['name'] for shelf in response.data]
+        shelf_names = [shelf['name'] for shelf in response.data['results']]
         self.assertIn("Reading", shelf_names)
 
     def test_get_system_shelves(self):
         """Test retrieving system shelves"""
-        url = reverse('shelf-system')
+        url = reverse('shelf-system-shelves')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
 
     def test_get_custom_shelves(self):
         """Test retrieving custom shelves"""
-        url = reverse('shelf-custom')
+        url = reverse('shelf-custom-shelves')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)  # No custom shelves yet

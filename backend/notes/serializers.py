@@ -23,7 +23,7 @@ class NoteCreateSerializer(serializers.ModelSerializer):
 class RatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rating
-        fields = ['id', 'library_book', 'rating', 'created_at']
+        fields = ['id', 'library_book', 'rating', 'category', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 

@@ -37,7 +37,7 @@ export const booksAPI = {
   // Get single book
   getById: (id) => api.get(`/books/${id}/`),
   
-  // Create book manually
+  // Create book
   create: (data) => api.post('/books/', data),
   
   // Update book
@@ -46,11 +46,34 @@ export const booksAPI = {
   // Delete book
   delete: (id) => api.delete(`/books/${id}/`),
   
-  // Lookup book by ISBN (no save)
-  lookup: (isbn) => api.post('/books/lookup/', { isbn }),
+  // Lookup book by ISBN
+  lookup: (data) => api.post('/books/lookup/', data),
   
-  // Ingest book by ISBN (create with metadata)
-  ingest: (isbn) => api.post('/books/ingest/', { isbn }),
+  // Ingest book by ISBN
+  ingest: (data) => api.post('/books/ingest/', data),
+  
+  // Search for cover images
+  searchCovers: (data) => api.post('/books/search-covers/', data),
+  
+  // Categorize book
+  categorize: (data) => api.post('/books/categorize/', data),
+}
+
+export const tagsAPI = {
+  // Get all tags
+  getAll: (params = {}) => api.get('/tags/', { params }),
+  
+  // Get single tag
+  getById: (id) => api.get(`/tags/${id}/`),
+  
+  // Create tag
+  create: (data) => api.post('/tags/', data),
+  
+  // Update tag
+  update: (id, data) => api.patch(`/tags/${id}/`, data),
+  
+  // Delete tag
+  delete: (id) => api.delete(`/tags/${id}/`),
 }
 
 export const librariesAPI = {
@@ -77,6 +100,38 @@ export const librariesAPI = {
   
   // Remove book from library
   removeBook: (libraryBookId) => api.delete(`/library-books/${libraryBookId}/`),
+  
+  // Export library
+  export: (libraryId) => api.get(`/libraries/${libraryId}/export/`, {
+    responseType: 'blob'
+  }),
+  
+  // Import library
+  import: (data, config = {}) => api.post('/libraries/import_library/', data, {
+    ...config,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  
+  // Mass operations for individual libraries
+  massAddBooks: (libraryId, bookIds) => api.post(`/libraries/${libraryId}/mass_add_books/`, { book_ids: bookIds }),
+  
+  massRemoveBooks: (libraryId, bookIds, moveToUnassigned = true) => api.post(`/libraries/${libraryId}/mass_remove_books/`, { 
+    book_ids: bookIds, 
+    move_to_unassigned: moveToUnassigned 
+  }),
+  
+  massMoveBooks: (libraryId, targetLibraryId, bookIds) => api.post(`/libraries/${libraryId}/mass_move_books/`, { 
+    target_library_id: targetLibraryId, 
+    book_ids: bookIds 
+  }),
+  
+  // Global mass operations
+  massOperations: (operationType, data) => api.post('/libraries/mass_operations/', {
+    operation_type: operationType,
+    ...data
+  }),
 }
 
 export const libraryBooksAPI = {
@@ -150,8 +205,7 @@ export const ratingsAPI = {
   // Get rating summary
   summary: (libraryBookId) => api.get('/ratings/summary/', { params: { library_book_id: libraryBookId } }),
   
-  // Set category rating
-  categoryRating: (data) => api.post('/ratings/category/', data),
+
 }
 
 export const reviewsAPI = {
@@ -166,14 +220,6 @@ export const reviewsAPI = {
   
   // Delete review
   delete: (id) => api.delete(`/reviews/${id}/`),
-}
-
-export const tagsAPI = {
-  // Get all tags
-  getAll: () => api.get('/tags/'),
-  
-  // Create tag
-  create: (data) => api.post('/tags/', data),
 }
 
 export const shelvesAPI = {
@@ -193,10 +239,10 @@ export const shelvesAPI = {
   delete: (id) => api.delete(`/shelves/${id}/`),
   
   // Get system shelves
-  getSystemShelves: () => api.get('/shelves/system/'),
+  getSystemShelves: () => api.get('/shelves/system_shelves/'),
   
   // Get custom shelves
-  getCustomShelves: () => api.get('/shelves/custom/'),
+  getCustomShelves: () => api.get('/shelves/custom_shelves/'),
   
   // Add book to shelf
   addBookToShelf: (shelfId, data) => api.post(`/shelves/${shelfId}/add_book/`, data),

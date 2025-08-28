@@ -32,11 +32,12 @@ urlpatterns = [
     ])),
     path('ratings/', include([
         path('summary/', RatingViewSet.as_view({'get': 'summary'}), name='rating-summary'),
-        path('category/', RatingViewSet.as_view({'post': 'category_rating'}), name='rating-category'),
     ])),
-    path('shelves/', include([
-        path('system/', ShelfViewSet.as_view({'get': 'system_shelves'}), name='shelf-system'),
-        path('custom/', ShelfViewSet.as_view({'get': 'custom_shelves'}), name='shelf-custom'),
+
+    path('books/', include([
+        path('search-covers/', BookViewSet.as_view({'post': 'search_covers'}), name='book-search-covers'),
+        path('categorize/', BookViewSet.as_view({'post': 'categorize'}), name='book-categorize'),
     ])),
+
     path('health/', include('obvia_core.health_urls')),
 ]

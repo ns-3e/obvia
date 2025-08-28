@@ -7,9 +7,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         system_shelves = [
-            {'name': 'wishlist', 'description': 'Books I want to read'},
-            {'name': 'reading', 'description': 'Books I am currently reading'},
-            {'name': 'finished', 'description': 'Books I have finished reading'},
+            {'name': 'wishlist'},
+            {'name': 'reading'},
+            {'name': 'finished'},
         ]
 
         created_count = 0
@@ -17,7 +17,6 @@ class Command(BaseCommand):
             shelf, created = Shelf.objects.get_or_create(
                 name=shelf_data['name'],
                 defaults={
-                    'description': shelf_data['description'],
                     'is_system': True
                 }
             )

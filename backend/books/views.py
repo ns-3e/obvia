@@ -10,6 +10,10 @@ from .serializers import (
     TagSerializer, ShelfSerializer
 )
 from ingest.clients import BookMetadataClient
+import requests
+import json
+import re
+from typing import List, Dict, Optional
 
 
 class AuthorViewSet(viewsets.ModelViewSet):
@@ -243,3 +247,241 @@ class BookViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to create book: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['post'])
+    def search_covers(self, request):
+        """Search for book cover images from multiple sources."""
+        title = request.data.get('title')
+        author = request.data.get('author')
+        isbn = request.data.get('isbn')
+        
+        if not title and not isbn:
+            return Response(
+                {'error': 'Title or ISBN is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        covers = []
+        
+        # Search Google Books API
+        if title or isbn:
+            try:
+                google_covers = self._search_google_covers(title, author, isbn)
+                covers.extend(google_covers)
+            except Exception as e:
+                print(f"Google Books cover search failed: {e}")
+        
+        # Search Open Library API
+        if isbn:
+            try:
+                openlib_covers = self._search_openlib_covers(isbn)
+                covers.extend(openlib_covers)
+            except Exception as e:
+                print(f"Open Library cover search failed: {e}")
+        
+        # Remove duplicates and limit results
+        unique_covers = []
+        seen_urls = set()
+        for cover in covers:
+            if cover['url'] not in seen_urls:
+                unique_covers.append(cover)
+                seen_urls.add(cover['url'])
+        
+        return Response({
+            'covers': unique_covers[:10]  # Limit to 10 results
+        })
+    
+    def _search_google_covers(self, title: str = None, author: str = None, isbn: str = None) -> List[Dict]:
+        """Search Google Books API for cover images."""
+        covers = []
+        
+        # Build search query
+        query_parts = []
+        if isbn:
+            query_parts.append(f"isbn:{isbn}")
+        if title:
+            query_parts.append(f'"{title}"')
+        if author:
+            query_parts.append(f'"{author}"')
+        
+        query = " ".join(query_parts)
+        
+        try:
+            url = "https://www.googleapis.com/books/v1/volumes"
+            params = {
+                'q': query,
+                'maxResults': 5,
+                'fields': 'items(volumeInfo(title,authors,imageLinks))'
+            }
+            
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            if 'items' in data:
+                for item in data['items']:
+                    volume_info = item.get('volumeInfo', {})
+                    image_links = volume_info.get('imageLinks', {})
+                    
+                    # Try different image sizes
+                    for size in ['extraLarge', 'large', 'medium', 'small', 'thumbnail']:
+                        if size in image_links:
+                            covers.append({
+                                'url': image_links[size].replace('http://', 'https://'),
+                                'source': 'Google Books',
+                                'title': volume_info.get('title', ''),
+                                'authors': volume_info.get('authors', [])
+                            })
+                            break
+        except Exception as e:
+            print(f"Google Books API error: {e}")
+        
+        return covers
+    
+    def _search_openlib_covers(self, isbn: str) -> List[Dict]:
+        """Search Open Library API for cover images."""
+        covers = []
+        
+        try:
+            # First get the book data
+            url = f"https://openlibrary.org/api/books"
+            params = {
+                'bibkeys': f'ISBN:{isbn}',
+                'format': 'json',
+                'jscmd': 'data'
+            }
+            
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            book_key = f'ISBN:{isbn}'
+            if book_key in data:
+                book_data = data[book_key]
+                covers_data = book_data.get('cover', [])
+                
+                for cover in covers_data:
+                    if isinstance(cover, dict) and 'url' in cover:
+                        covers.append({
+                            'url': cover['url'],
+                            'source': 'Open Library',
+                            'title': book_data.get('title', ''),
+                            'authors': [author.get('name', '') for author in book_data.get('authors', [])]
+                        })
+        except Exception as e:
+            print(f"Open Library API error: {e}")
+        
+        return covers
+
+    @action(detail=False, methods=['post'])
+    def categorize(self, request):
+        """Automatically categorize a book based on its metadata."""
+        book_id = request.data.get('book_id')
+        title = request.data.get('title')
+        description = request.data.get('description')
+        authors = request.data.get('authors', [])
+        
+        if not book_id and not title:
+            return Response(
+                {'error': 'Book ID or title is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get book data if book_id provided
+        if book_id:
+            try:
+                book = Book.objects.get(id=book_id)
+                title = book.title
+                description = book.description
+                authors = [author.name for author in book.authors.all()]
+            except Book.DoesNotExist:
+                return Response(
+                    {'error': 'Book not found'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        # Generate categories based on content analysis
+        categories = self._analyze_book_content(title, description, authors)
+        
+        return Response({
+            'categories': categories,
+            'confidence': self._calculate_confidence(categories)
+        })
+    
+    def _analyze_book_content(self, title: str, description: str = None, authors: List[str] = None) -> List[str]:
+        """Analyze book content to determine categories."""
+        categories = []
+        text_to_analyze = f"{title} {description or ''} {' '.join(authors or [])}".lower()
+        
+        # Define category keywords
+        category_keywords = {
+            'fiction': ['novel', 'story', 'tale', 'fiction', 'fantasy', 'mystery', 'romance', 'thriller', 'sci-fi', 'science fiction'],
+            'non-fiction': ['non-fiction', 'nonfiction', 'biography', 'autobiography', 'memoir', 'history', 'science', 'philosophy'],
+            'philosophy': ['philosophy', 'philosophical', 'ethics', 'metaphysics', 'epistemology', 'logic', 'moral', 'existential'],
+            'science': ['science', 'scientific', 'physics', 'chemistry', 'biology', 'mathematics', 'research', 'experiment'],
+            'history': ['history', 'historical', 'ancient', 'medieval', 'modern', 'war', 'battle', 'civilization'],
+            'biography': ['biography', 'autobiography', 'memoir', 'life story', 'personal', 'diary'],
+            'technology': ['technology', 'computer', 'software', 'programming', 'digital', 'internet', 'ai', 'artificial intelligence'],
+            'business': ['business', 'management', 'economics', 'finance', 'marketing', 'entrepreneurship', 'leadership'],
+            'self-help': ['self-help', 'personal development', 'motivation', 'success', 'happiness', 'mindfulness'],
+            'religion': ['religion', 'religious', 'spiritual', 'theology', 'faith', 'bible', 'quran', 'meditation'],
+            'politics': ['politics', 'political', 'government', 'policy', 'democracy', 'socialism', 'capitalism'],
+            'psychology': ['psychology', 'psychological', 'mental health', 'behavior', 'mind', 'therapy', 'counseling'],
+            'education': ['education', 'learning', 'teaching', 'academic', 'textbook', 'course', 'study'],
+            'art': ['art', 'artistic', 'painting', 'sculpture', 'design', 'creative', 'aesthetic'],
+            'literature': ['literature', 'literary', 'classic', 'poetry', 'drama', 'theater', 'play'],
+            'travel': ['travel', 'journey', 'adventure', 'exploration', 'geography', 'culture', 'destination'],
+            'cooking': ['cooking', 'recipe', 'food', 'culinary', 'kitchen', 'chef', 'gastronomy'],
+            'health': ['health', 'medical', 'medicine', 'wellness', 'fitness', 'nutrition', 'diet'],
+            'environment': ['environment', 'environmental', 'climate', 'ecology', 'sustainability', 'nature', 'conservation'],
+            'sports': ['sports', 'athletic', 'fitness', 'game', 'competition', 'olympic', 'team']
+        }
+        
+        # Score each category based on keyword matches
+        category_scores = {}
+        for category, keywords in category_keywords.items():
+            score = 0
+            for keyword in keywords:
+                if keyword in text_to_analyze:
+                    score += 1
+            if score > 0:
+                category_scores[category] = score
+        
+        # Sort by score and take top categories
+        sorted_categories = sorted(category_scores.items(), key=lambda x: x[1], reverse=True)
+        
+        # Add categories with score >= 1
+        for category, score in sorted_categories[:5]:  # Limit to top 5
+            if score >= 1:
+                categories.append(category)
+        
+        # Add specific genre detection
+        if 'fiction' in categories:
+            # Detect sub-genres
+            if any(word in text_to_analyze for word in ['fantasy', 'magic', 'wizard', 'dragon']):
+                categories.append('fantasy')
+            elif any(word in text_to_analyze for word in ['mystery', 'detective', 'crime', 'murder']):
+                categories.append('mystery')
+            elif any(word in text_to_analyze for word in ['romance', 'love', 'relationship']):
+                categories.append('romance')
+            elif any(word in text_to_analyze for word in ['thriller', 'suspense', 'action']):
+                categories.append('thriller')
+            elif any(word in text_to_analyze for word in ['sci-fi', 'science fiction', 'space', 'future']):
+                categories.append('science-fiction')
+        
+        return list(set(categories))  # Remove duplicates
+    
+    def _calculate_confidence(self, categories: List[str]) -> float:
+        """Calculate confidence score for categorization."""
+        if not categories:
+            return 0.0
+        
+        # Simple confidence based on number of categories found
+        # More categories = higher confidence
+        base_confidence = min(len(categories) * 0.2, 1.0)
+        
+        # Boost confidence for specific categories
+        specific_categories = ['philosophy', 'science', 'history', 'biography', 'technology']
+        specific_boost = sum(0.1 for cat in categories if cat in specific_categories)
+        
+        return min(base_confidence + specific_boost, 1.0)

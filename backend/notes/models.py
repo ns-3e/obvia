@@ -27,14 +27,16 @@ class Rating(models.Model):
     rating = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
+    category = models.CharField(max_length=100, null=True, blank=True, help_text="Category for the rating (e.g., 'overall', 'plot', 'characters')")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
-        unique_together = ['library_book', 'rating']  # One rating per book
+        unique_together = ['library_book', 'category']  # One rating per category per book
 
     def __str__(self):
-        return f"{self.rating}/5 - {self.library_book}"
+        category_text = f" ({self.category})" if self.category else ""
+        return f"{self.rating}/5{category_text} - {self.library_book}"
 
 
 class Review(models.Model):

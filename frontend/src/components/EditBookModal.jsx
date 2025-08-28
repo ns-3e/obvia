@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, Save, Loader } from 'lucide-react'
-import { booksAPI } from '../utils/api'
+import { X, Save, Loader, Library, Move } from 'lucide-react'
+import { booksAPI, librariesAPI } from '../utils/api'
 
 const EditBookModal = ({ book, isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -12,6 +12,8 @@ const EditBookModal = ({ book, isOpen, onClose, onSave }) => {
     page_count: '',
     language: ''
   })
+  const [libraries, setLibraries] = useState([])
+  const [selectedLibrary, setSelectedLibrary] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -27,8 +29,26 @@ const EditBookModal = ({ book, isOpen, onClose, onSave }) => {
         language: book.language || ''
       })
       setError(null)
+      loadLibraries()
     }
   }, [book, isOpen])
+
+  const loadLibraries = async () => {
+    try {
+      const response = await librariesAPI.getAll()
+      const librariesData = response.data.results || response.data || []
+      setLibraries(librariesData)
+      
+      // Set current library if book has library information
+      if (book.library_id) {
+        setSelectedLibrary(book.library_id)
+      } else if (librariesData.length > 0) {
+        setSelectedLibrary(librariesData[0].id)
+      }
+    } catch (error) {
+      console.error('Failed to load libraries:', error)
+    }
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -58,7 +78,18 @@ const EditBookModal = ({ book, isOpen, onClose, onSave }) => {
         cleanedData.page_count = parseInt(cleanedData.page_count, 10)
       }
 
+      // Update book data
       const response = await booksAPI.update(book.id, cleanedData)
+      
+      // Move book to new library if library changed
+      if (selectedLibrary && book.library_id !== selectedLibrary) {
+        try {
+          await librariesAPI.addBook(selectedLibrary, book.id)
+        } catch (moveError) {
+          console.error('Failed to move book to new library:', moveError)
+          // Don't fail the entire operation if moving fails
+        }
+      }
       
       if (onSave) {
         onSave(response.data)
@@ -76,30 +107,61 @@ const EditBookModal = ({ book, isOpen, onClose, onSave }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 w-full h-full bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Edit Book
-          </h2>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-2xl">
+              <Library className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Edit Book
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Update book details and location
+              </p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition-all duration-200"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           {error && (
             <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl">
-              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+              <p className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Library Selection */}
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Move className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Move to Library
+              </label>
+            </div>
+            <select
+              value={selectedLibrary}
+              onChange={(e) => setSelectedLibrary(e.target.value)}
+              className="input w-full"
+            >
+              {libraries.map(library => (
+                <option key={library.id} value={library.id}>
+                  {library.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Title */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -112,7 +174,7 @@ const EditBookModal = ({ book, isOpen, onClose, onSave }) => {
                 onChange={handleInputChange}
                 required
                 className="input w-full"
-                placeholder="Book title"
+                placeholder="Enter book title"
               />
             </div>
 
@@ -127,7 +189,7 @@ const EditBookModal = ({ book, isOpen, onClose, onSave }) => {
                 value={formData.subtitle}
                 onChange={handleInputChange}
                 className="input w-full"
-                placeholder="Book subtitle"
+                placeholder="Enter book subtitle"
               />
             </div>
 
@@ -203,12 +265,12 @@ const EditBookModal = ({ book, isOpen, onClose, onSave }) => {
               onChange={handleInputChange}
               rows={4}
               className="input w-full resize-none"
-              placeholder="Book description"
+              placeholder="Enter book description"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
