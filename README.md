@@ -1,6 +1,8 @@
-# Obvia — Personal Intelligent Library Manager
+# Obvia — Personal Library Manager
 
 A minimal, single-user app to manage a personal book library with ISBN lookup (including barcode scan), enriched metadata, intelligent notes, basic + semantic search, and simple recommendations.
+
+![Obvia Screenshot](./docs/screenshot.png)
 
 ## Features
 
@@ -94,6 +96,8 @@ Copy `.env.example` to `.env` and configure the following variables:
 The bulk scanner feature allows you to quickly scan multiple books using your device's camera. It provides live barcode detection with automatic metadata enrichment and import.
 
 ### How to Use Bulk Scanner
+
+![Bulk Scanner Screenshot](./docs/BulkScan.png)
 
 1. **Access the Scanner**: Click the "Bulk Scan" button in the header or navigate to `/scan`
 2. **Select Target Library**: Choose which library to import books into
