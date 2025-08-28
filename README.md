@@ -1,464 +1,337 @@
-# Obvia — Personal Library Manager
+# Obvia 📚
 
-A minimal, single-user app to manage a personal book library with ISBN lookup (including barcode scan), enriched metadata, intelligent notes, basic + semantic search, and simple recommendations.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Django](https://img.shields.io/badge/django-5.0+-green.svg)](https://www.djangoproject.com/)
+[![React](https://img.shields.io/badge/react-18+-blue.svg)](https://reactjs.org/)
+[![Docker](https://img.shields.io/badge/docker-compose-blue.svg)](https://docs.docker.com/compose/)
+
+A modern, self-hosted personal library management system with intelligent book discovery, semantic search, and AI-powered note-taking capabilities.
 
 ![Obvia Screenshot](./docs/screenshot.png)
 
-## Features
+## ✨ Features
 
-- 📚 **Book Management**: Add books via ISBN lookup or barcode scanning
-- 📷 **Bulk Scanning**: Live webcam barcode scanning with automatic import and audio feedback
-- 🔍 **Metadata Enrichment**: Automatic data fetching from Google Books and Open Library APIs
-- 📝 **Intelligent Notes**: Markdown-based note-taking with AI assistance
-- 🔎 **Search**: Basic search (title/author/ISBN) and semantic search across metadata/notes/PDF text
-- 📊 **Recommendations**: Book recommendations based on metadata similarity
-- 📁 **File Management**: Upload and extract text from PDFs
-- 🏷️ **Organization**: Tags, shelves, and ratings for book organization
-- 🎨 **Modern UI**: Sleek, monochrome interface with dark/light mode
+### 📚 **Book Management**
+- **ISBN Lookup & Barcode Scanning**: Add books instantly via ISBN lookup or live webcam barcode scanning
+- **Bulk Import**: Scan multiple books rapidly with audio feedback and real-time progress tracking
+- **Metadata Enrichment**: Automatic data fetching from Google Books and Open Library APIs
+- **Cover Management**: Upload and manage book cover images with automatic resizing
 
-## Tech Stack
+### 🔍 **Advanced Search & Discovery**
+- **Semantic Search**: AI-powered search across book metadata, notes, and PDF content
+- **Basic Search**: Fast filtering by title, author, ISBN, tags, ratings, and shelves
+- **Smart Recommendations**: Get personalized book recommendations based on your library
+- **Full-Text Search**: Search within uploaded PDF documents
 
-- **Backend**: Python 3.11, Django 5, Django REST Framework, MySQL 8
-- **Frontend**: React 18 (Vite), Tailwind CSS
-- **Packaging**: Docker (multi-stage) + docker-compose
-- **Style**: Sleek, modern, monochrome (grays/black/white), dark/light
+### 📝 **Intelligent Notes & Reviews**
+- **Markdown Support**: Rich text editing with markdown syntax
+- **AI Assistance**: Get AI-powered suggestions for note enhancement
+- **Rating System**: Multi-category rating system (overall, plot, writing, etc.)
+- **Review Management**: Comprehensive review system with tags and categories
 
-## Prerequisites
+### 🏷️ **Organization & Categorization**
+- **Library Management**: Create and manage multiple libraries
+- **Shelf System**: Organize books with custom and system shelves (wishlist, reading, finished)
+- **Tagging**: Flexible tagging system for book categorization
+- **Import/Export**: Bulk import/export libraries in JSON format
 
-- Docker and Docker Compose
-- Git
+### 🎨 **Modern Interface**
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
+- **Dark/Light Mode**: Toggle between themes for comfortable reading
+- **Real-time Updates**: Live updates without page refreshes
+- **Accessibility**: Built with accessibility best practices
 
-## Quick Start
+## 🛠️ Tech Stack
 
-### Option 1: Using Scripts (Recommended)
+### Backend
+- **Python 3.11+** with Django 5.0
+- **Django REST Framework** for API development
+- **MySQL 8.0** (with SQLite fallback for development)
+- **Redis** for caching and session management
+- **Celery** for background task processing
 
-1. **Clone the repository**:
+### Frontend
+- **React 18** with Vite for fast development
+- **Tailwind CSS** for modern, responsive styling
+- **Axios** for API communication
+- **React Router** for client-side routing
+
+### Infrastructure
+- **Docker & Docker Compose** for containerization
+- **Nginx** for static file serving
+- **MinIO** (optional) for object storage
+
+## 🚀 Quick Start
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+- [Git](https://git-scm.com/)
+
+### Installation
+
+1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/yourusername/obvia.git
    cd obvia
    ```
 
-2. **Run the development script**:
+2. **Start the application**
    ```bash
+   # Using the development script (recommended)
    ./scripts/dev.sh
-   ```
-
-3. **Access the application**:
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8000
-   - API Documentation: http://localhost:8000/api/docs/
-
-### Option 2: Manual Setup
-
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd obvia
-   ```
-
-2. **Copy environment file**:
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Start the application**:
-   ```bash
+   
+   # Or manually with Docker Compose
    docker compose up --build
    ```
 
-4. **Access the application**:
-   - Frontend: http://localhost:5173 (development) or http://localhost:80 (production)
-   - Backend API: http://localhost:8000
-   - API Documentation: http://localhost:8000/api/docs/
+3. **Access the application**
+   - **Frontend**: http://localhost:5173
+   - **Backend API**: http://localhost:8000
+   - **API Documentation**: http://localhost:8000/api/docs/
 
-## Environment Configuration
+### First Time Setup
+
+1. **Create a superuser account**
+   ```bash
+   docker compose exec backend python manage.py createsuperuser
+   ```
+
+2. **Create system shelves**
+   ```bash
+   docker compose exec backend python manage.py create_system_shelves
+   ```
+
+3. **Seed with example books** (optional)
+   ```bash
+   docker compose exec backend python manage.py seed_books --create-library
+   ```
+
+## ⚙️ Configuration
+
+### Environment Variables
 
 Copy `.env.example` to `.env` and configure the following variables:
 
-### Database
-- `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DB`, `MYSQL_USER`, `MYSQL_PASSWORD`: MySQL connection settings
-
-### External APIs
-- `GOOGLE_BOOKS_ENABLED`: Enable Google Books API (default: true)
-- `OPEN_LIBRARY_ENABLED`: Enable Open Library API (default: true)
-- `GOOGLE_BOOKS_API_KEY`: Optional API key for Google Books (increases rate limits)
-
-### AI Features (Optional)
-- `AI_PROVIDER`: Set to `openai`, `local`, or `disabled` (default: disabled)
-- `OPENAI_API_KEY`: Required if using OpenAI for semantic search
-
-### Storage
-- `MEDIA_ROOT`: Local file storage path
-- `USE_OBJECT_STORAGE`: Enable MinIO object storage (default: false)
-
-## Bulk Scanner
-
-The bulk scanner feature allows you to quickly scan multiple books using your device's camera. It provides live barcode detection with automatic metadata enrichment and import.
-
-### How to Use Bulk Scanner
-
-![Bulk Scanner Screenshot](./docs/BulkScan.png)
-
-1. **Access the Scanner**: Click the "Bulk Scan" button in the header or navigate to `/scan`
-2. **Select Target Library**: Choose which library to import books into
-3. **Start Scanning**: Click "Start Scanning" to activate the camera
-4. **Scan Books**: Hold books with barcodes in front of the camera
-5. **Monitor Progress**: Watch the live queue panel for import status
-6. **Export Results**: Use "Export CSV" to save a record of the session
-
-### Scanner Features
-
-- **Live Camera Preview**: Real-time video feed with scanning overlay
-- **Audio Feedback**: Success chime for new books, tick for duplicates
-- **Visual Feedback**: Green flash for new detections, yellow for duplicates
-- **Live Queue**: Real-time display of scanned books with status updates
-- **Automatic Import**: Books are automatically fetched and added to the selected library
-- **Error Handling**: Retry failed imports, clear error messages
-- **Session Management**: Clear queue, export results, remove individual items
-
-### Tips for Best Results
-
-- **Lighting**: Ensure good, even lighting on the barcode
-- **Distance**: Hold books 6-12 inches from the camera
-- **Stability**: Keep the book steady for 1-2 seconds
-- **Barcode Visibility**: Ensure the entire barcode is clearly visible
-- **Camera Position**: Use the back camera on mobile devices for better results
-
-### Keyboard Shortcuts
-
-- **Enter**: Start scanning
-- **Escape**: Stop scanning
-- **Cmd/Ctrl+K**: Clear queue
-
-### Troubleshooting
-
-- **Camera Access Denied**: Allow camera permissions in your browser
-- **No Camera Found**: Ensure your device has a working camera
-- **Camera in Use**: Close other applications using the camera
-- **Poor Detection**: Improve lighting and hold books steady
-- **Network Errors**: Check your internet connection for metadata fetching
-
-## API Endpoints
-
-### Libraries
-- `GET /api/libraries/` - List all libraries
-- `POST /api/libraries/` - Create a new library
-- `PATCH /api/libraries/{id}` - Update library
-- `DELETE /api/libraries/{id}` - Delete library
-
-### Books
-- `GET /api/books/` - List all books
-- `POST /api/books/` - Create a new book manually
-- `GET /api/books/{id}/` - Get book details
-- `PATCH /api/books/{id}/` - Update book
-- `DELETE /api/books/{id}/` - Delete book
-- `POST /api/books/lookup/` - Lookup book by ISBN (no save, uses external APIs)
-- `POST /api/books/ingest/` - Create book from ISBN with metadata enrichment
-- `POST /api/libraries/{libraryId}/books/` - Add book to library
-- `GET /api/libraries/{libraryId}/books/` - List books in library
-- `DELETE /api/libraries/{libraryId}/books/{libraryBookId}/` - Remove book from library
-
-### Search
-- `GET /api/search/basic?q=...&library_id=...&author=...&tag=...&rating=...&shelf=...` - Enhanced basic search with filters
-- `POST /api/search/semantic` - Semantic search using embeddings (requires AI_PROVIDER)
-- `GET /api/search/status` - Check semantic search status and configuration
-- `GET /api/search/recommendations?library_book_id=...&limit=...` - Book recommendations based on metadata similarity
-
-### Notes & Reviews
-- `GET /api/notes/` - List all notes
-- `GET /api/notes/{id}/` - Get note details
-- `POST /api/notes/` - Create note
-- `PATCH /api/notes/{id}/` - Update note
-- `DELETE /api/notes/{id}/` - Delete note
-- `POST /api/notes/{id}/ai_assist/` - AI assistance for note enhancement
-
-### Ratings
-- `GET /api/ratings/` - List all ratings
-- `GET /api/ratings/{id}/` - Get rating details
-- `POST /api/ratings/` - Create rating
-- `PATCH /api/ratings/{id}/` - Update rating
-- `DELETE /api/ratings/{id}/` - Delete rating
-- `GET /api/ratings/summary/` - Get rating summary for a book
-- `POST /api/ratings/category/` - Set category-specific rating
-
-### Shelves
-- `GET /api/shelves/` - List all shelves
-- `GET /api/shelves/{id}/` - Get shelf details
-- `POST /api/shelves/` - Create shelf
-- `PATCH /api/shelves/{id}/` - Update shelf
-- `DELETE /api/shelves/{id}/` - Delete shelf
-- `GET /api/shelves/system/` - Get system shelves (wishlist, reading, finished)
-- `GET /api/shelves/custom/` - Get custom shelves
-- `POST /api/shelves/{id}/add_book/` - Add book to shelf
-- `DELETE /api/shelves/{id}/remove_book/` - Remove book from shelf
-- `GET /api/shelves/{id}/books/` - Get books on shelf
-
-### Files
-- `GET /api/files/` - List all files
-- `GET /api/files/{id}/` - Get file details
-- `POST /api/files/` - Upload file (multipart/form-data)
-- `PATCH /api/files/{id}/` - Update file
-- `DELETE /api/files/{id}/` - Delete file
-- `POST /api/files/{id}/extract_text/` - Extract text from PDF file
-
-## Development
-
-### Backend Development
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py runserver
+# Database Configuration
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DB=obvia
+MYSQL_USER=obvia
+MYSQL_PASSWORD=obvia
+
+# Django Configuration
+SECRET_KEY=your-secret-key-here
+DEBUG=true
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# External APIs (Optional)
+GOOGLE_BOOKS_ENABLED=true
+OPEN_LIBRARY_ENABLED=true
+GOOGLE_BOOKS_API_KEY=your-google-books-api-key
+
+# AI Features (Optional)
+AI_PROVIDER=disabled  # Options: openai, local, disabled
+OPENAI_API_KEY=your-openai-api-key
+
+# Storage
+MEDIA_ROOT=/app/media
+USE_OBJECT_STORAGE=false
 ```
 
-### Frontend Development
+### Production Deployment
+
+For production deployment, ensure you:
+
+1. **Set secure environment variables**
+   ```bash
+   DEBUG=false
+   SECRET_KEY=your-very-secure-secret-key
+   ALLOWED_HOSTS=your-domain.com,www.your-domain.com
+   ```
+
+2. **Use external database**
+   ```bash
+   MYSQL_HOST=your-db-host
+   MYSQL_USER=your-db-user
+   MYSQL_PASSWORD=your-db-password
+   ```
+
+3. **Configure external storage** (optional)
+   ```bash
+   USE_OBJECT_STORAGE=true
+   # Configure S3 or MinIO credentials
+   ```
+
+## 📖 Usage Guide
+
+### Adding Books
+
+1. **Manual Entry**: Use the "Add Book" form to enter book details manually
+2. **ISBN Lookup**: Enter an ISBN to automatically fetch book metadata
+3. **Barcode Scanning**: Use the bulk scanner for rapid book import
+
+### Bulk Scanning
+
+The bulk scanner allows you to quickly scan multiple books:
+
+1. Navigate to the bulk scanner page
+2. Select your target library
+3. Start scanning and hold books in front of the camera
+4. Monitor progress in the live queue panel
+5. Export results as CSV when finished
+
+### Search & Discovery
+
+- **Basic Search**: Use the search bar for quick title/author lookups
+- **Advanced Filters**: Filter by tags, ratings, shelves, and more
+- **Semantic Search**: Enable AI provider for intelligent content search
+- **Recommendations**: Get personalized book suggestions
+
+### File Management
+
+- **PDF Upload**: Upload book PDFs for text extraction
+- **Cover Images**: Manage book cover images with automatic resizing
+- **File Organization**: Organize files by book and library
+
+## 🔧 Development
+
+### Local Development Setup
+
+1. **Backend Development**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   python manage.py runserver
+   ```
+
+2. **Frontend Development**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+### Running Tests
+
 ```bash
-cd frontend
-npm install
-npm run dev
+# Backend tests
+docker compose exec backend python manage.py test --settings=obvia_core.test_settings
+
+# Frontend tests
+cd frontend && npm test
 ```
 
 ### Database Management
+
 ```bash
 # Apply migrations
 docker compose exec backend python manage.py migrate
 
-# Create superuser (if needed)
+# Create superuser
 docker compose exec backend python manage.py createsuperuser
-
-# Seed example books with metadata enrichment
-docker compose exec backend python manage.py seed_books --create-library
-
-# Extract text from existing PDF files
-docker compose exec backend python manage.py extract_pdf_text
-
-# Create embeddings for semantic search
-docker compose exec backend python manage.py create_embeddings
-
-# Create system shelves (wishlist, reading, finished)
-docker compose exec backend python manage.py create_system_shelves
 
 # Reset database
 docker compose down -v
 docker compose up --build
-
-## Testing
-
-### Backend Tests
-Run the backend tests using the test settings:
-```bash
-# Run all tests
-docker compose exec backend python manage.py test --settings=obvia_core.test_settings
-
-# Run specific test files
-docker compose exec backend python manage.py test --settings=obvia_core.test_settings books.test_simple
-docker compose exec backend python manage.py test --settings=obvia_core.test_settings search.test_simple
 ```
 
-### Frontend Tests
-The frontend includes basic functionality tests that run during the build process.
+## 📚 API Documentation
 
-### Manual Testing
-Use the comprehensive manual runbook for end-to-end testing:
-```bash
-# Follow the manual runbook
-cat MANUAL_RUNBOOK.md
-```
+The API provides comprehensive endpoints for all functionality:
 
-The manual runbook covers:
-- Basic setup and navigation
-- Library management
-- Book addition (barcode scan)
-- Book management
-- Tags and shelves
-- Ratings and reviews
-- Notes and AI assist
-- File upload and PDF text extraction
-- Search functionality
-- Recommendations
-- Semantic search (if enabled)
-- Error handling
-- Performance and responsiveness
-- Data persistence
-- Accessibility
+### Core Endpoints
+- `GET /api/books/` - List all books
+- `POST /api/books/ingest/` - Create book from ISBN
+- `GET /api/libraries/` - List all libraries
+- `GET /api/search/basic` - Basic search with filters
+- `POST /api/search/semantic` - Semantic search
 
-## Scripts
+### Authentication
+The API uses Django's built-in authentication system. For production, consider implementing JWT tokens.
 
-The project includes several useful scripts for development and deployment:
+### Rate Limiting
+API endpoints are rate-limited to prevent abuse. Adjust limits in settings for production use.
 
-### Development Scripts
+## 🤝 Contributing
 
-- **`./scripts/dev.sh`** - Complete development setup
-  - Checks prerequisites (Docker, Docker Compose)
-  - Creates .env file if missing
-  - Starts all services with health checks
-  - Provides helpful commands and URLs
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-- **`./scripts/deploy.sh`** - Production deployment
-  - Full production deployment with health checks
-  - Runs migrations and creates system shelves
-  - Includes monitoring commands
+### Development Workflow
 
-### Backup & Restore Scripts
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- **`./scripts/backup.sh`** - Create backups
-  - Backs up database and media files
-  - Creates timestamped backup files
-  - Generates backup information file
+### Code Style
 
-- **`./scripts/restore.sh <db_file> <media_file>`** - Restore from backup
-  - Restores database and media files
-  - Includes safety confirmations
-  - Runs post-restore setup
+- **Python**: Follow PEP 8 guidelines
+- **JavaScript**: Use ESLint configuration
+- **CSS**: Follow Tailwind CSS conventions
+- **Commits**: Use conventional commit messages
 
-### Example Usage
+## 🐛 Bug Reports
 
-```bash
-# Development setup
-./scripts/dev.sh
+Please use the [GitHub issue tracker](https://github.com/yourusername/obvia/issues) to report bugs. Include:
 
-# Production deployment
-./scripts/deploy.sh
+- Clear description of the issue
+- Steps to reproduce
+- Expected vs actual behavior
+- Environment details (OS, browser, etc.)
 
-# Create backup
-./scripts/backup.sh
+## 🔒 Security
 
-# Restore from backup
-./scripts/restore.sh ./backups/obvia_db_20241201_143022.sql ./backups/obvia_media_20241201_143022.tar.gz
-```
-```
+### Security Model
 
-## Troubleshooting
+- **Local Storage**: All data is stored locally by default
+- **No External Sharing**: Data is never shared with third parties
+- **Secure Defaults**: Production-ready security configurations
+- **Regular Updates**: Dependencies are regularly updated
 
-### Port Conflicts
-If ports 3306, 6379, 8000, or 5173 are already in use, modify the ports in `docker-compose.yml`.
+### Reporting Security Issues
 
-### Camera Access (Barcode Scanner)
-The barcode scanner requires camera permissions. If denied, the app will fall back to manual ISBN input.
+If you discover a security vulnerability, please report it privately to [security@yourdomain.com](mailto:security@yourdomain.com) before creating a public issue.
 
-### Database Connection Issues
-Ensure MySQL container is healthy before starting the backend:
-```bash
-docker compose logs mysql
-```
+### Security Best Practices
 
-### File Upload Issues
-Check that the media volume is properly mounted and has write permissions.
+1. **Change Default Credentials**: Always change default database passwords
+2. **Use HTTPS**: Configure SSL/TLS for production deployments
+3. **Regular Backups**: Set up automated backup procedures
+4. **Keep Updated**: Regularly update dependencies and the application
 
-### Service Health Issues
-Check service health status:
-```bash
-docker compose ps
-```
+## 📄 License
 
-View service logs:
-```bash
-docker compose logs -f backend
-docker compose logs -f frontend
-docker compose logs -f mysql
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Performance Issues
-Monitor resource usage:
-```bash
-docker stats
-```
+## 🙏 Acknowledgments
 
-### Backup Issues
-If backup fails, ensure services are running:
-```bash
-docker compose ps
-```
+- **Google Books API** for book metadata
+- **Open Library API** for additional book information
+- **OpenAI** for AI-powered features
+- **Django** and **React** communities for excellent documentation
 
-### Restore Issues
-If restore fails, check backup file integrity:
-```bash
-ls -la backups/
-```
+## 📞 Support
 
-### AI Features Not Working
-Ensure AI_PROVIDER is configured in .env:
-```bash
-# For OpenAI
-AI_PROVIDER=openai
-OPENAI_API_KEY=your-api-key
+- **Documentation**: [Wiki](https://github.com/yourusername/obvia/wiki)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/obvia/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/obvia/discussions)
+- **Email**: [support@yourdomain.com](mailto:support@yourdomain.com)
 
-# For local fallback
-AI_PROVIDER=local
+## 📈 Roadmap
 
-# To disable
-AI_PROVIDER=disabled
-```
+- [ ] **Mobile App**: Native iOS and Android applications
+- [ ] **Multi-User**: Multi-user support
+- [ ] **Social Features**: Share libraries and book recommendations
+- [ ] **Advanced Analytics**: Reading statistics and insights
+- [ ] **Improved Book Recommendations**: Improved book recommendations
+- [ ] **Integration APIs**: Connect with other book services
+- [ ] **Offline Mode**: Full offline functionality
+- [ ] **Multi-language Support**: Internationalization
+- [ ] **AI-powered book discovery**: AI-powered book discovery
 
-## Production Deployment
-
-### Using Deployment Script (Recommended)
-```bash
-./scripts/deploy.sh
-```
-
-### Manual Production Setup
-
-1. **Configure environment for production**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with production settings
-   # Set DEBUG=false
-   # Configure proper SECRET_KEY
-   # Set up external database if needed
-   ```
-
-2. **Deploy with Docker Compose**:
-   ```bash
-   docker compose -f docker-compose.yml up -d --build
-   ```
-
-3. **Run post-deployment setup**:
-   ```bash
-   docker compose exec backend python manage.py migrate
-   docker compose exec backend python manage.py create_system_shelves
-   docker compose exec backend python manage.py createsuperuser
-   ```
-
-### Production Considerations
-
-- **Security**: Set `DEBUG=false` and use a strong `SECRET_KEY`
-- **Database**: Consider using external MySQL/PostgreSQL for production
-- **Media Storage**: Use external storage (S3, MinIO) for media files
-- **Backup**: Set up regular backups using `./scripts/backup.sh`
-- **Monitoring**: Use Docker health checks and monitoring tools
-- **SSL**: Configure reverse proxy with SSL termination
-
-### Environment Variables for Production
-
-```bash
-# Required
-DEBUG=false
-SECRET_KEY=your-very-secure-secret-key
-ALLOWED_HOSTS=your-domain.com,www.your-domain.com
-
-# Database (if using external)
-MYSQL_HOST=your-db-host
-MYSQL_USER=your-db-user
-MYSQL_PASSWORD=your-db-password
-
-# AI Features (optional)
-AI_PROVIDER=openai
-OPENAI_API_KEY=your-openai-key
-
-# External APIs (optional)
-GOOGLE_BOOKS_API_KEY=your-google-books-key
-```
-
-## Privacy & Security
-
-⚠️ **Important**: This application is designed for local/private use. Only upload PDFs that you have the rights to use. The application stores data locally and does not share it with third parties.
-
-## License
-
-[Add your license here]
-
-## Contributing
-
-[Add contribution guidelines here]
+---

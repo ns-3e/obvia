@@ -6,6 +6,7 @@ services:
     container_name: obvia-mysql
     restart: unless-stopped
     environment:
+      # Development defaults - change these for production
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: obvia
       MYSQL_USER: obvia
