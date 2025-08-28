@@ -325,25 +325,114 @@ Working Rules for the AI Agent
 
 ✅ Acceptance check: Docs are clear; a new user can complete a bulk scan session end-to-end.
 
-⸻
-
-Phase 11 — Final Acceptance Criteria
-	•	Webcam scanning reliably detects unique ISBN-13 (978/979) and debounces duplicates.
-	•	A chime plays on each new unique detection; duplicates are skipped with distinct feedback.
-	•	Each new detection auto-ingests metadata and adds the book to the selected library.
-	•	The right-hand queue updates in real time with cover/title/status and supports remove/clear/export.
-	•	Robust handling of errors, retries, and offline scenarios.
-	•	Performance is smooth; no memory leaks; Start/Stop behaves correctly.
-	•	README.md updated; PROGRESS.md reflects completed checklist items.
 
 ⸻
 
-Implementation Hints (keep simple)
-	•	Prefer functionality over perfection; ship minimal slices.
-	•	For semantic search in small libraries, a basic cosine similarity can be fine before FAISS.
-	•	If MySQL is heavy for first run, you may add a dev flag to use SQLite, but default to MySQL in Docker.
-	•	Barcode: @zxing/browser EAN-13; handle permission errors gracefully with a manual ISBN input fallback.
-	•	PDF text: pypdf first (no OCR); add OCR later only if needed.
+Phase 12 — Advanced Notes Editor (Notion-Style)
+
+Goal: Transform the existing Markdown-only notes into a powerful, intuitive editor that supports rich text, slash commands, tagging, hierarchical references to books/chapters/sections/pages, and embedded diagrams (via Excalidraw). The editor must feel like part of the app’s DNA — fast, modern, monochrome UI — and not a bolted-on third party.
+
+⸻
+
+12.1 Backend Enhancements — Book Hierarchy Support
+	•	Extend Book model with structured hierarchy fields:
+	•	Chapter(id, book FK, title, number, order)
+	•	Section(id, chapter FK, title, order)
+	•	SubSection(id, section FK, title, order)
+	•	PageRange(id, subsection FK, start_page, end_page) (optional, future-proofing)
+	•	Update ingest layer:
+	•	Parse chapter/section data from APIs (Google/Open Library) if available.
+	•	If not provided, allow manual chapter/section entry in UI.
+	•	Create reference tables/foreign keys so notes can reference Book, Chapter, Section, SubSection, or PageRange.
+	•	Update DRF serializers & endpoints:
+	•	/api/books/{id}/chapters
+	•	/api/chapters/{id}/sections
+	•	etc., for hierarchical CRUD.
+	•	Update Note model with:
+	•	ref_book_id, ref_chapter_id, ref_section_id, ref_subsection_id (nullable).
+	•	Ensure polymorphic linking so a note can reference any level.
+
+Acceptance: New hierarchy tables in DB, populated when possible from API, editable via API, and linked to notes.
+
+⸻
+
+12.2 Rich Text + Slash Command Editor (Frontend)
+	•	Replace Markdown-only editor with a block-based editor (similar to Notion). Use Tiptap (React-friendly ProseMirror) as base.
+	•	Implement slash menu (/) commands:
+	•	/h1, /h2, /h3 → headings
+	•	/todo → checklists
+	•	/quote, /code, /callout blocks
+	•	/diagram → insert Excalidraw canvas
+	•	/reference → search & insert reference to book/chapter/section/page
+	•	/tag → insert semantic tags
+	•	Inline autocompletion for references (@Book Title, #Tag, @Chapter: …).
+	•	Keyboard-first design: all commands available without mouse.
+
+Acceptance: Notes editor supports block types, slash menu, tagging, references, and looks/feels like Notion/Medium.
+
+⸻
+
+12.3 Excalidraw Integration (Diagrams)
+	•	Integrate Excalidraw open source.
+	•	Provide embedded canvas block (/diagram) inside the editor.
+	•	Save diagrams as JSON in backend with optional PNG/SVG preview.
+	•	Attach diagrams to notes with M2M relationship (NoteDiagram).
+	•	Lazy-load large diagrams to avoid perf issues.
+
+Acceptance: User can insert/edit diagrams inline, save/load seamlessly, and diagrams persist as part of notes.
+
+⸻
+
+12.4 Tagging & Linking System
+	•	Allow inline tagging with #tags.
+	•	Store tags in dedicated Tag model; auto-create if new.
+	•	Allow tagging of books + notes (cross-entity).
+	•	Support @mention for cross-linking notes/books.
+	•	Render links as hoverable popovers (mini-preview of book/note).
+
+Acceptance: Inline tags and references resolve to backend objects, clickable with previews.
+
+⸻
+
+12.5 Modern Features & Blue-Ocean Differentiators
+	•	Backlinks: Auto-generate “mentioned in…” section for books/notes.
+	•	Semantic Note Linking: If AI is enabled, auto-suggest links to related notes/books (like Obsidian’s graph view).
+	•	Smart Outliner: Collapsible sidebar that shows document outline (headings, chapters, sections referenced).
+	•	Offline Drafts: Store unsaved drafts in browser local storage, sync when back online.
+	•	Export/Import: Allow export of notes to Markdown or PDF (with diagrams).
+	•	Diagram + Text Hybrid: Prototype feature — allow inline linking between diagram objects and text blocks (click diagram node → jumps to text anchor).
+
+Acceptance: Users experience features beyond basic editors; early differentiator vs. Notion clones.
+
+⸻
+
+12.6 API & Integration Points
+	•	Extend /api/library-books/{id}/notes to support block-structured content (JSON + HTML).
+	•	Add endpoints for references: /api/notes/{id}/references.
+	•	Add diagram endpoints: /api/notes/{id}/diagrams.
+	•	Ensure all note/diagram data is included in semantic embeddings (Phase 6 tie-in).
+
+Acceptance: All new data flows via DRF, semantic search can access notes + diagrams.
+
+⸻
+
+12.7 UI/UX & Consistency
+	•	Monochrome theme, same rounded-2xl cards, subtle shadows.
+	•	Editor feels native, not bolted on.
+	•	Responsive: works on desktop + tablet (mobile read-only at first).
+	•	Accessibility: full keyboard navigation, ARIA roles, proper focus traps.
+
+Acceptance: Notes editor UI consistent with app, accessible, performant.
+
+⸻
+
+12.8 Testing & Docs
+	•	Backend tests for new hierarchy models + reference endpoints.
+	•	Frontend integration tests for slash commands, tagging, Excalidraw embed.
+	•	Manual runbook: create note → slash commands → reference book → add diagram → save → semantic search.
+	•	README update: usage, limitations, examples, GIFs.
+
+Acceptance: End-to-end tested and documented.
 
 ⸻
 
@@ -351,53 +440,53 @@ Agent Reminder: Update PROGRESS.md continuously. Break the build into steps. Aft
 
 ⸻
 
-Phase 12 — Future Enhancements & Improvements (Optional)
+Phase 13 — Future Enhancements & Improvements (Optional)
 
 The core application is now complete and fully functional. The following are potential enhancements that could be added in the future:
 
-12.1 Data Import/Export Features
+13.1 Data Import/Export Features
 	•	CSV import/export of library contents
 	•	Kindle highlights import (CSV/JSON format)
 	•	Goodreads export compatibility
 	•	Library of Congress data integration
 
-12.2 Advanced Search & Discovery
+13.2 Advanced Search & Discovery
 	•	Advanced filtering (publication date ranges, language, publisher)
 	•	Saved search queries
 	•	Search history and analytics
 	•	Book series detection and grouping
 
-12.3 Enhanced AI Features
+13.3 Enhanced AI Features
 	•	Book recommendation improvements using collaborative filtering
 	•	Reading time estimation based on page count and complexity
 	•	Automatic book categorization and tagging
 	•	Reading progress tracking and insights
 
-12.4 Mobile & Accessibility
+13.4 Mobile & Accessibility
 	•	Progressive Web App (PWA) features
 	•	Mobile-optimized bulk scanning interface
 	•	Screen reader compatibility improvements
 	•	Keyboard navigation enhancements
 
-12.5 Performance & Scalability
+13.5 Performance & Scalability
 	•	Database query optimization for large libraries
 	•	Caching improvements (Redis for search results)
 	•	Background task processing for bulk operations
 	•	Image optimization for book covers
 
-12.6 Integration & Extensions
+13.6 Integration & Extensions
 	•	Browser extension for capturing web pages as book stubs
 	•	Zotero integration for academic references
 	•	Calibre library import
 	•	Social sharing features (optional)
 
-12.7 Advanced File Management
+13.7 Advanced File Management
 	•	OCR text extraction for scanned PDFs
 	•	E-book format support (EPUB, MOBI)
 	•	Audio book metadata support
 	•	File deduplication and organization
 
-12.8 Analytics & Insights
+13.8 Analytics & Insights
 	•	Reading statistics and trends
 	•	Genre analysis and recommendations
 	•	Author analysis and discovery
@@ -405,7 +494,7 @@ The core application is now complete and fully functional. The following are pot
 
 ⸻
 
-Current Status: ✅ COMPLETE
+Current Status: IN PROGRESS
 
 All core functionality has been implemented and tested. The application is ready for production use with the following features:
 
