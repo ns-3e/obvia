@@ -54,3 +54,267 @@
     @apply badge bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300;
   }
 }
+
+/* Tiptap Editor Styles */
+@layer utilities {
+  .ProseMirror {
+    @apply outline-none h-full w-full resize-none;
+    min-height: 200px;
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 1.5rem !important;
+  }
+
+  /* Target the actual editable content area */
+  .ProseMirror .ProseMirror-content {
+    height: 100%;
+    min-height: inherit;
+  }
+
+  /* Ensure the content fills the available space */
+  .ProseMirror .ProseMirror-content > * {
+    min-height: 0;
+  }
+
+  /* Target nested content areas */
+  .ProseMirror .ProseMirror-content .ProseMirror-content {
+    height: 100%;
+    min-height: inherit;
+  }
+
+  /* Target the actual editable element */
+  .ProseMirror .ProseMirror-content [contenteditable="true"] {
+    height: 100%;
+    min-height: inherit;
+    display: block;
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Ensure paragraphs and other elements don't collapse */
+  .ProseMirror p {
+    min-height: 1.2em;
+    margin: 0.5em 0;
+    line-height: 1.4;
+  }
+
+  .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+    margin: 0.8em 0 0.4em 0;
+    line-height: 1.3;
+  }
+
+  .ProseMirror ul, .ProseMirror ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+
+  .ProseMirror li {
+    margin: 0.2em 0;
+    line-height: 1.4;
+  }
+
+  .ProseMirror .ProseMirror-content p:first-child {
+    margin-top: 0;
+  }
+
+  /* Remove all focus outlines from ProseMirror elements */
+  .ProseMirror * {
+    outline: none !important;
+  }
+
+  .ProseMirror:focus {
+    outline: none !important;
+  }
+
+  .ProseMirror:focus-within {
+    outline: none !important;
+  }
+
+  /* Specific styling for the editor content area */
+  .editor-content .ProseMirror {
+    height: 100%;
+    min-height: 200px;
+    display: block;
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 1rem !important;
+  }
+
+  .editor-content .ProseMirror .ProseMirror-content {
+    height: 100%;
+    min-height: inherit;
+    display: block;
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  
+  .ProseMirror p.is-editor-empty:first-child::before {
+    @apply text-gray-400 dark:text-gray-500 float-left h-0 pointer-events-none;
+    content: attr(data-placeholder);
+    margin-left: 0;
+  }
+  
+  .ProseMirror h1 {
+    @apply text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 mt-6;
+  }
+  
+  .ProseMirror h2 {
+    @apply text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 mt-5;
+  }
+  
+  .ProseMirror h3 {
+    @apply text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 mt-4;
+  }
+  
+  .ProseMirror p {
+    @apply text-gray-700 dark:text-gray-300 mb-3 leading-relaxed;
+  }
+  
+  .ProseMirror ul {
+    @apply list-disc list-inside mb-3 space-y-1;
+  }
+  
+  .ProseMirror ol {
+    @apply list-decimal list-inside mb-3 space-y-1;
+  }
+  
+  .ProseMirror li {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+  
+  /* Ensure task list items don't inherit default list styling */
+  .ProseMirror li[data-type="taskItem"] {
+    @apply list-none;
+  }
+  
+  .ProseMirror ul[data-type="taskList"] li {
+    @apply list-none;
+  }
+  
+  .ProseMirror blockquote {
+    @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-2 my-4 bg-gray-50 dark:bg-gray-800 rounded-r-lg;
+  }
+  
+  .ProseMirror blockquote p {
+    @apply text-gray-600 dark:text-gray-400 italic mb-0;
+  }
+  
+  .ProseMirror code {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1 py-0.5 rounded text-sm font-mono;
+  }
+  
+  .ProseMirror pre {
+    @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto mb-4;
+  }
+  
+  .ProseMirror pre code {
+    @apply bg-transparent p-0 text-gray-800 dark:text-gray-200;
+  }
+  
+  .ProseMirror mark {
+    @apply bg-yellow-200 dark:bg-yellow-800 text-gray-900 dark:text-gray-100 px-1 rounded;
+  }
+  
+  .ProseMirror strong {
+    @apply font-semibold text-gray-900 dark:text-gray-100;
+  }
+  
+  .ProseMirror em {
+    @apply italic text-gray-800 dark:text-gray-200;
+  }
+  
+  .ProseMirror s {
+    @apply line-through text-gray-500 dark:text-gray-400;
+  }
+  
+
+  
+
+  
+  /* Additional task list styling to ensure inline display */
+  .ProseMirror ul[data-type="taskList"] {
+    @apply list-none space-y-2;
+    list-style: none !important;
+  }
+  
+  .ProseMirror ul[data-type="taskList"] li,
+  .ProseMirror li[data-type="taskItem"] {
+    @apply flex items-start space-x-2 list-none;
+    list-style: none !important;
+    display: flex !important;
+  }
+  
+  .ProseMirror ul[data-type="taskList"] li > label,
+  .ProseMirror li[data-type="taskItem"] > label {
+    @apply flex items-center space-x-2 cursor-pointer w-full;
+    display: flex !important;
+    align-items: flex-start !important;
+  }
+  
+  .ProseMirror ul[data-type="taskList"] li > label > input[type="checkbox"],
+  .ProseMirror li[data-type="taskItem"] > label > input[type="checkbox"] {
+    @apply w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 rounded focus:ring-gray-500 dark:focus:ring-gray-400 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 flex-shrink-0;
+  }
+  
+  .ProseMirror ul[data-type="taskList"] li > label > div,
+  .ProseMirror li[data-type="taskItem"] > label > div {
+    @apply flex-1 min-w-0;
+  }
+  
+  .ProseMirror ul[data-type="taskList"] li > label > div p,
+  .ProseMirror li[data-type="taskItem"] > label > div p {
+    @apply mb-0;
+  }
+  
+  /* Tag and Reference chip styles */
+  .ProseMirror span[data-type="tag"] {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mr-1 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors;
+    user-select: none !important;
+    white-space: nowrap !important;
+    pointer-events: auto !important;
+  }
+  
+  .ProseMirror span[data-type="reference"] {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 mr-1 cursor-pointer hover:bg-green-200 dark:hover:bg-green-800 transition-colors;
+    user-select: none !important;
+    white-space: nowrap !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Prevent cursor positioning inside chips */
+  .ProseMirror span[data-type="tag"],
+  .ProseMirror span[data-type="reference"] {
+    cursor: pointer !important;
+  }
+  
+  .ProseMirror span[data-type="tag"]::before,
+  .ProseMirror span[data-type="tag"]::after,
+  .ProseMirror span[data-type="reference"]::before,
+  .ProseMirror span[data-type="reference"]::after {
+    content: '' !important;
+    display: inline-block !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  /* Focus styles */
+  .ProseMirror:focus {
+    @apply ring-2 ring-gray-500 dark:ring-gray-400 ring-opacity-50;
+  }
+  
+  /* Selection styles */
+  .ProseMirror ::selection {
+    @apply bg-gray-300 dark:bg-gray-600;
+  }
+  
+  /* Placeholder styles */
+  .ProseMirror .is-empty::before {
+    @apply text-gray-400 dark:text-gray-500 float-left h-0 pointer-events-none;
+    content: attr(data-placeholder);
+  }
+}

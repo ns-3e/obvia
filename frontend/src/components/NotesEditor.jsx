@@ -1,19 +1,22 @@
-import { useState, useEffect, useRef } from 'react'
-import { Edit, Eye, EyeOff, Brain, Save, Plus, Trash2, Loader } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Edit, Brain, Plus, Trash2, Loader } from 'lucide-react'
 import { notesAPI } from '../utils/api'
+import RichTextEditor from './RichTextEditor'
 
-const NotesEditor = ({ libraryBookId, onNoteSaved }) => {
+const NotesEditor = ({ libraryBookId }) => {
   const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [editingNote, setEditingNote] = useState(null)
-  const [showPreview, setShowPreview] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResponse, setAiResponse] = useState('')
   const [showAiPanel, setShowAiPanel] = useState(false)
+  const [lastAutosave, setLastAutosave] = useState(null)
+  const [isAutosaving, setIsAutosaving] = useState(false)
+  const [autosaveError, setAutosaveError] = useState(null)
   
-  const textareaRef = useRef(null)
+
 
   useEffect(() => {
     if (libraryBookId) {
@@ -39,51 +42,24 @@ const NotesEditor = ({ libraryBookId, onNoteSaved }) => {
       id: null,
       title: '',
       content_markdown: '',
+      content_blocks: null,
       ai_generated: false
     })
-    setShowPreview(false)
     setAiResponse('')
+    setLastAutosave(null)
+    setIsAutosaving(false)
+    setAutosaveError(null)
   }
 
   const handleEditNote = (note) => {
     setEditingNote({ ...note })
-    setShowPreview(false)
     setAiResponse('')
+    setLastAutosave(null)
+    setIsAutosaving(false)
+    setAutosaveError(null)
   }
 
-  const handleSaveNote = async () => {
-    if (!editingNote.title.trim() || !editingNote.content_markdown.trim()) {
-      setError('Title and content are required')
-      return
-    }
 
-    try {
-      setLoading(true)
-      setError(null)
-
-      if (editingNote.id) {
-        // Update existing note
-        await notesAPI.update(editingNote.id, editingNote)
-      } else {
-        // Create new note
-        await notesAPI.create({
-          ...editingNote,
-          library_book: libraryBookId
-        })
-      }
-
-      setEditingNote(null)
-      await loadNotes()
-      if (onNoteSaved) {
-        onNoteSaved()
-      }
-    } catch (error) {
-      console.error('Failed to save note:', error)
-      setError('Failed to save note')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleDeleteNote = async (noteId) => {
     if (!confirm('Are you sure you want to delete this note?')) {
@@ -148,6 +124,115 @@ const NotesEditor = ({ libraryBookId, onNoteSaved }) => {
     })
   }
 
+  const stripHtmlTags = (html) => {
+    if (!html) return ''
+    // Remove HTML tags and decode HTML entities
+    return html
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+      .replace(/&amp;/g, '&') // Replace &amp; with &
+      .replace(/&lt;/g, '<') // Replace &lt; with <
+      .replace(/&gt;/g, '>') // Replace &gt; with >
+      .replace(/&quot;/g, '"') // Replace &quot; with "
+      .replace(/&#39;/g, "'") // Replace &#39; with '
+      .trim()
+  }
+
+  const formatAutosaveTime = (date) => {
+    if (!date) return null
+    const now = new Date()
+    const diff = now - date
+    const minutes = Math.floor(diff / 60000)
+    
+    if (minutes < 1) return 'just now'
+    if (minutes === 1) return '1 minute ago'
+    if (minutes < 60) return `${minutes} minutes ago`
+    
+    const hours = Math.floor(minutes / 60)
+    if (hours === 1) return '1 hour ago'
+    if (hours < 24) return `${hours} hours ago`
+    
+    // For longer periods, show date and time
+    const days = Math.floor(hours / 24)
+    if (days === 1) return 'yesterday'
+    if (days < 7) return `${days} days ago`
+    
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    })
+  }
+
+
+
+  const handleRichEditorChange = (htmlContent, isAutosave = false) => {
+    console.log('handleRichEditorChange called:', { isAutosave, hasEditingNote: !!editingNote, hasId: editingNote?.id })
+    if (editingNote) {
+      const newContent = {
+        ...editingNote,
+        content_blocks_html: htmlContent,
+        // Keep markdown for backward compatibility
+        content_markdown: htmlContent
+      }
+      
+      setEditingNote(newContent)
+
+      // Handle autosave
+      if (isAutosave) {
+        console.log('Calling handleAutosave...')
+        handleAutosave(editingNote.id, newContent)
+      }
+    }
+  }
+
+  const handleAutosave = async (noteId, noteData) => {
+    try {
+      console.log('Autosaving note...', { noteId, isNewNote: !noteId })
+      setIsAutosaving(true)
+      
+      let savedNote
+      if (noteId) {
+        // Update existing note
+        savedNote = await notesAPI.update(noteId, noteData)
+      } else {
+        // Create new note if it has a title
+        if (noteData.title && noteData.title.trim()) {
+          savedNote = await notesAPI.create({
+            ...noteData,
+            library_book: libraryBookId
+          })
+          // Update the editing note with the new ID
+          setEditingNote(prev => ({
+            ...prev,
+            id: savedNote.data.id
+          }))
+        } else {
+          console.log('Skipping autosave for new note without title')
+          return
+        }
+      }
+      
+      console.log('Note autosaved successfully')
+      setLastAutosave(new Date())
+      setAutosaveError(null)
+    } catch (error) {
+      console.error('Autosave failed:', error)
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method
+      })
+      setAutosaveError(error.response?.data?.detail || error.message || 'Autosave failed')
+    } finally {
+      setIsAutosaving(false)
+    }
+  }
+
   if (loading && notes.length === 0) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -194,7 +279,11 @@ const NotesEditor = ({ libraryBookId, onNoteSaved }) => {
             </div>
           ) : (
             notes.map((note) => (
-              <div key={note.id} className="card p-4">
+              <div 
+                key={note.id} 
+                className="card p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                onClick={() => handleEditNote(note)}
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-2">
@@ -208,7 +297,8 @@ const NotesEditor = ({ libraryBookId, onNoteSaved }) => {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      {note.content_markdown.substring(0, 150)}...
+                      {stripHtmlTags(note.content_markdown || note.content_blocks_html || '').substring(0, 150)}
+                      {(note.content_markdown || note.content_blocks_html || '').length > 150 && '...'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {formatDate(note.created_at)}
@@ -216,13 +306,19 @@ const NotesEditor = ({ libraryBookId, onNoteSaved }) => {
                   </div>
                   <div className="flex items-center space-x-2 ml-4">
                     <button
-                      onClick={() => handleEditNote(note)}
+                      onClick={(e) => {
+                        e.stopPropagation() // Prevent card click
+                        handleEditNote(note)
+                      }}
                       className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-colors"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteNote(note.id)}
+                      onClick={(e) => {
+                        e.stopPropagation() // Prevent card click
+                        handleDeleteNote(note.id)
+                      }}
                       className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -243,52 +339,73 @@ const NotesEditor = ({ libraryBookId, onNoteSaved }) => {
             <input
               type="text"
               value={editingNote.title}
-              onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
+              onChange={(e) => {
+                const newTitle = e.target.value
+                setEditingNote({ ...editingNote, title: newTitle })
+                
+                // Trigger autosave for title changes if note has content
+                if (newTitle.trim() && (editingNote.content_markdown || editingNote.content_blocks_html)) {
+                  setTimeout(() => {
+                    handleAutosave(editingNote.id, {
+                      ...editingNote,
+                      title: newTitle
+                    })
+                  }, 2000) // 2 second delay for title changes
+                }
+              }}
               placeholder="Note title..."
               className="input text-lg font-medium"
             />
 
+            {/* Autosave Status */}
+            {(lastAutosave || isAutosaving || autosaveError) && (
+              <div className={`text-xs transition-all duration-200 ${
+                autosaveError 
+                  ? 'text-red-500 dark:text-red-400'
+                  : isAutosaving
+                  ? 'text-blue-500 dark:text-blue-400'
+                  : 'text-gray-400 dark:text-gray-500'
+              }`}>
+                {autosaveError ? (
+                  <div className="flex items-center space-x-1">
+                    <span>⚠️ Save failed</span>
+                    <button 
+                      onClick={() => {
+                        // Clear error by triggering a new autosave attempt
+                        if (editingNote) {
+                          handleAutosave(editingNote.id, editingNote)
+                        }
+                      }}
+                      className="underline hover:no-underline"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : isAutosaving ? (
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin"></div>
+                    <span>Saving...</span>
+                  </div>
+                ) : (
+                  <span>Last saved {formatAutosaveTime(lastAutosave)}</span>
+                )}
+              </div>
+            )}
+
             {/* Editor Controls */}
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="btn-secondary flex items-center space-x-2"
-                >
-                  {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  <span>{showPreview ? 'Hide Preview' : 'Show Preview'}</span>
-                </button>
-                <button
+                {/* <button
                   onClick={() => setShowAiPanel(!showAiPanel)}
                   className="btn-secondary flex items-center space-x-2"
                 >
                   <Brain className="h-4 w-4" />
                   <span>AI Assist</span>
-                </button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setEditingNote(null)}
-                  className="btn-outline"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveNote}
-                  disabled={loading}
-                  className="btn-primary flex items-center space-x-2"
-                >
-                  {loading ? (
-                    <Loader className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  <span>Save</span>
-                </button>
-              </div>
-            </div>
+                </button> */}
+              {/* </div>
+            </div> */}
 
-            {/* AI Panel */}
+            {/* AI Panel
             {showAiPanel && (
               <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-gray-50 dark:bg-gray-800">
                 <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
@@ -332,39 +449,24 @@ const NotesEditor = ({ libraryBookId, onNoteSaved }) => {
                   )}
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Content Editor */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Markdown Editor */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Markdown Editor
-                </label>
-                <textarea
-                  ref={textareaRef}
-                  value={editingNote.content_markdown}
-                  onChange={(e) => setEditingNote({ ...editingNote, content_markdown: e.target.value })}
-                  placeholder="Write your note in Markdown..."
-                  className="input h-96 resize-none font-mono text-sm"
-                />
-              </div>
-
-              {/* Preview */}
-              {showPreview && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Preview
-                  </label>
-                  <div className="input h-96 overflow-y-auto prose prose-sm dark:prose-invert max-w-none">
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: editingNote.content_html || editingNote.content_markdown
-                      }}
-                    />
-                  </div>
+            <div className="h-96">
+              {/* Rich Text Editor */}
+              <div className="flex flex-col h-full">
+                <div className="flex-1 min-h-0">
+                  <RichTextEditor
+                    content={editingNote.content_blocks_html || editingNote.content_markdown}
+                    onChange={handleRichEditorChange}
+                    placeholder="Start writing... Type / for commands"
+                    className="h-full"
+                    libraryBookId={libraryBookId}
+                    tags={editingNote.tags || []}
+                    onTagsChange={(tags) => setEditingNote({ ...editingNote, tags })}
+                  />
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

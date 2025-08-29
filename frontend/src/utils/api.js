@@ -183,6 +183,37 @@ export const notesAPI = {
   aiAssist: (noteId, data) => api.post(`/notes/${noteId}/ai_assist/`, data),
 }
 
+export const diagramsAPI = {
+  // Get all diagrams
+  getAll: (params = {}) => api.get('/diagrams/', { params }),
+  
+  // Get single diagram
+  getById: (id) => api.get(`/diagrams/${id}/`),
+  
+  // Create diagram
+  create: (data) => api.post('/diagrams/', data),
+  
+  // Update diagram
+  update: (id, data) => api.patch(`/diagrams/${id}/`, data),
+  
+  // Delete diagram
+  delete: (id) => api.delete(`/diagrams/${id}/`),
+  
+  // Update diagram preview
+  updatePreview: (id, data) => api.post(`/diagrams/${id}/update_preview/`, data),
+}
+
+export const noteDiagramsAPI = {
+  // Get note diagrams
+  getByNote: (noteId) => api.get('/note-diagrams/', { params: { note_id: noteId } }),
+  
+  // Create note diagram
+  create: (data) => api.post('/note-diagrams/', data),
+  
+  // Delete note diagram
+  delete: (id) => api.delete(`/note-diagrams/${id}/`),
+}
+
 export const ratingsAPI = {
   // Get all ratings
   getAll: (params = {}) => api.get('/ratings/', { params }),

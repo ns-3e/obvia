@@ -4,10 +4,12 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
-from .models import Book, Author, Tag, Shelf
+from .models import Book, Author, Tag, Shelf, Chapter, Section, SubSection, PageRange
 from .serializers import (
     BookSerializer, BookCreateSerializer, AuthorSerializer,
-    TagSerializer, ShelfSerializer
+    TagSerializer, ShelfSerializer, ChapterSerializer, SectionSerializer,
+    SubSectionSerializer, PageRangeSerializer, ChapterCreateSerializer,
+    SectionCreateSerializer, SubSectionCreateSerializer, PageRangeCreateSerializer
 )
 from ingest.clients import BookMetadataClient
 import requests
@@ -132,6 +134,101 @@ class ShelfViewSet(viewsets.ModelViewSet):
             
         except Exception as e:
             return Response({'error': 'Failed to get shelf books'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ChapterViewSet(viewsets.ModelViewSet):
+    queryset = Chapter.objects.all()
+    serializer_class = ChapterSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['book']
+    search_fields = ['title']
+    ordering_fields = ['order', 'number', 'title', 'created_at']
+    ordering = ['order', 'number']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ChapterCreateSerializer
+        return ChapterSerializer
+
+    def get_queryset(self):
+        queryset = Chapter.objects.all()
+        book_id = self.request.query_params.get('book_id')
+        if book_id:
+            queryset = queryset.filter(book_id=book_id)
+        return queryset
+
+
+class SectionViewSet(viewsets.ModelViewSet):
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['chapter']
+    search_fields = ['title']
+    ordering_fields = ['order', 'title', 'created_at']
+    ordering = ['order']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return SectionCreateSerializer
+        return SectionSerializer
+
+    def get_queryset(self):
+        queryset = Section.objects.all()
+        chapter_id = self.request.query_params.get('chapter_id')
+        if chapter_id:
+            queryset = queryset.filter(chapter_id=chapter_id)
+        return queryset
+
+
+class SubSectionViewSet(viewsets.ModelViewSet):
+    queryset = SubSection.objects.all()
+    serializer_class = SubSectionSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['section']
+    search_fields = ['title']
+    ordering_fields = ['order', 'title', 'created_at']
+    ordering = ['order']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return SubSectionCreateSerializer
+        return SubSectionSerializer
+
+    def get_queryset(self):
+        queryset = SubSection.objects.all()
+        section_id = self.request.query_params.get('section_id')
+        if section_id:
+            queryset = queryset.filter(section_id=section_id)
+        return queryset
+
+
+class PageRangeViewSet(viewsets.ModelViewSet):
+    queryset = PageRange.objects.all()
+    serializer_class = PageRangeSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['subsection', 'section', 'chapter']
+    ordering_fields = ['start_page', 'end_page', 'created_at']
+    ordering = ['start_page']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return PageRangeCreateSerializer
+        return PageRangeSerializer
+
+    def get_queryset(self):
+        queryset = PageRange.objects.all()
+        subsection_id = self.request.query_params.get('subsection_id')
+        section_id = self.request.query_params.get('section_id')
+        chapter_id = self.request.query_params.get('chapter_id')
+        
+        if subsection_id:
+            queryset = queryset.filter(subsection_id=subsection_id)
+        elif section_id:
+            queryset = queryset.filter(section_id=section_id)
+        elif chapter_id:
+            queryset = queryset.filter(chapter_id=chapter_id)
+        
+        return queryset
 
 
 class BookViewSet(viewsets.ModelViewSet):
