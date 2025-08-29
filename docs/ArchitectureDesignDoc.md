@@ -1,8 +1,8 @@
-# Obvia — Architecture Design Document
+# Preposition — Architecture Design Document
 
 ## Purpose & Vision
 
-Obvia is an intelligent personal library manager designed for single-user operation. It provides a comprehensive solution for managing personal book collections with advanced features like barcode scanning, metadata enrichment, intelligent notes, semantic search, and AI-assisted recommendations.
+Preposition is an intelligent personal library manager designed for single-user operation. It provides a comprehensive solution for managing personal book collections with advanced features like barcode scanning, metadata enrichment, intelligent notes, semantic search, and AI-assisted recommendations.
 
 ### Core Philosophy
 - **Single-user focused**: No authentication complexity, designed for personal use

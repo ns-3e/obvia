@@ -1,4 +1,4 @@
-# Obvia — Bug Tracking
+# Preposition — Bug Tracking
 
 This document tracks all known bugs, their status, and resolution steps. Bugs are categorized by severity and module.
 

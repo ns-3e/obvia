@@ -318,3 +318,53 @@
     content: attr(data-placeholder);
   }
 }
+
+/* PDF Reader Styles */
+.react-pdf__Page {
+  margin: 0 auto;
+}
+
+.react-pdf__Page__canvas {
+  display: block;
+  user-select: none;
+}
+
+.react-pdf__Page__textContent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.2;
+  line-height: 1.0;
+  user-select: text;
+}
+
+.react-pdf__Page__textContent--selectable {
+  user-select: text;
+}
+
+.react-pdf__Page__annotations {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.react-pdf__Page__annotation {
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* Highlight overlay styles */
+.pdf-highlight-overlay {
+  position: absolute;
+  background-color: rgba(255, 235, 59, 0.3);
+  border: 1px solid rgba(255, 235, 59, 0.5);
+  pointer-events: none;
+  z-index: 10;
+}

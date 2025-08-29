@@ -1,13 +1,13 @@
-# Obvia — Development Guide
+# Preposition — Development Guide
 
 ## Overview
 
-This guide provides comprehensive information for developers and AI agents working on the Obvia project. It covers the project structure, development practices, documentation standards, and guidelines for effective collaboration.
+This guide provides comprehensive information for developers and AI agents working on the Preposition project. It covers the project structure, development practices, documentation standards, and guidelines for effective collaboration.
 
 ## Project Structure
 
 ```
-obvia/
+preposition/
 ├── backend/                    # Django backend application
 │   ├── books/                 # Core book management
 │   ├── libraries/             # Library organization
@@ -15,7 +15,7 @@ obvia/
 │   ├── files/                 # File management
 │   ├── search/                # Search functionality
 │   ├── ingest/                # External API integration
-│   └── obvia_core/            # Django project settings
+│   └── preposition_core/            # Django project settings
 ├── frontend/                   # React frontend application
 │   ├── src/
 │   │   ├── components/        # Reusable UI components
@@ -169,7 +169,7 @@ obvia/
 
 ### Quick Start
 1. **Clone the Repository**: `git clone <repository-url>`
-2. **Navigate to Project**: `cd obvia`
+2. **Navigate to Project**: `cd preposition`
 3. **Start Services**: `./scripts/dev.sh`
 4. **Access Application**: 
    - Frontend: http://localhost:5173
@@ -204,7 +204,7 @@ cd frontend && npm test
 
 ### Debugging Tools
 1. **Docker Logs**: `docker compose logs -f [service]`
-2. **Database Access**: `docker compose exec mysql mysql -u obvia -p obvia`
+2. **Database Access**: `docker compose exec mysql mysql -u preposition -p preposition`
 3. **Backend Shell**: `docker compose exec backend python manage.py shell`
 4. **Frontend Dev Tools**: Browser developer tools for frontend debugging
 

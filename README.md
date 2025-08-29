@@ -1,4 +1,18 @@
-# Obvia 📚
+# Preposition
+
+Preposition is a personal intelligent library manager designed for readers of non-fiction.  
+It helps you **seamlessly take notes, connect context, and use AI to enhance understanding**.  
+
+## Brand Meaning & Connotation
+The name **Preposition** comes from grammar — prepositions are words like *in, on, with, about* that **connect ideas and give them context**.  
+That's exactly what Preposition does: it connects your **books, notes, and ideas** to reveal deeper relationships.  
+
+- 📖 **For readers:** It bridges the gap between what you read and how you remember it.  
+- ✍️ **For thinkers:** It turns highlights and notes into connected insights.  
+- 🤖 **With AI:** It helps you model concepts, generate new ideas, and communicate with greater clarity.  
+
+In short:  
+👉 **Preposition is the space between reading and understanding.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -8,7 +22,7 @@
 
 A modern, self-hosted personal library management system with intelligent book discovery, semantic search, and AI-powered note-taking capabilities.
 
-![Obvia Screenshot](./docs/screenshot.png)
+![Preposition Screenshot](./docs/screenshot.png)
 
 ## ✨ Features
 
@@ -72,8 +86,8 @@ A modern, self-hosted personal library management system with intelligent book d
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/obvia.git
-   cd obvia
+   git clone https://github.com/yourusername/preposition.git
+   cd preposition
    ```
 
 2. **Start the application**
@@ -117,9 +131,9 @@ Copy `.env.example` to `.env` and configure the following variables:
 # Database Configuration
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
-MYSQL_DB=obvia
-MYSQL_USER=obvia
-MYSQL_PASSWORD=obvia
+MYSQL_DB=preposition
+MYSQL_USER=preposition
+MYSQL_PASSWORD=preposition
 
 # Django Configuration
 SECRET_KEY=your-secret-key-here
@@ -219,7 +233,7 @@ The bulk scanner allows you to quickly scan multiple books:
 
 ```bash
 # Backend tests
-docker compose exec backend python manage.py test --settings=obvia_core.test_settings
+docker compose exec backend python manage.py test --settings=preposition_core.test_settings
 
 # Frontend tests
 cd frontend && npm test
@@ -277,7 +291,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ## 🐛 Bug Reports
 
-Please use the [GitHub issue tracker](https://github.com/yourusername/obvia/issues) to report bugs. Include:
+Please use the [GitHub issue tracker](https://github.com/yourusername/preposition/issues) to report bugs. Include:
 
 - Clear description of the issue
 - Steps to reproduce
@@ -317,9 +331,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation**: [Wiki](https://github.com/yourusername/obvia/wiki)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/obvia/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/obvia/discussions)
+- **Documentation**: [Wiki](https://github.com/yourusername/preposition/wiki)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/preposition/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/preposition/discussions)
 - **Email**: [support@yourdomain.com](mailto:support@yourdomain.com)
 
 ## 📈 Roadmap

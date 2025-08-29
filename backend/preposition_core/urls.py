@@ -1,5 +1,5 @@
 """
-URL configuration for obvia_core project.
+URL configuration for preposition_core project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.0/topics/http/urls/
@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('obvia_core.api_urls')),
+    path('api/', include('preposition_core.api_urls')),
 ]
 
 # Serve media files in development

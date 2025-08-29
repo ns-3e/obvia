@@ -51,3 +51,23 @@ class BookFile(models.Model):
     def size_mb(self):
         """Get file size in MB."""
         return round(self.bytes / (1024 * 1024), 2)
+
+
+class PDFHighlight(models.Model):
+    """Model for storing PDF highlights."""
+    book_file = models.ForeignKey(BookFile, on_delete=models.CASCADE, related_name='highlights')
+    text = models.TextField()
+    page = models.PositiveIntegerField()
+    x = models.FloatField()
+    y = models.FloatField()
+    width = models.FloatField()
+    height = models.FloatField()
+    color = models.CharField(max_length=7, default='#ffeb3b')  # Hex color
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Highlight on page {self.page} - {self.text[:50]}..."

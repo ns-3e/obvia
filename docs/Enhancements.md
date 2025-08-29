@@ -1,6 +1,6 @@
-# Obvia — Enhancement Tracking
+# Preposition — Enhancement Tracking
 
-This document tracks future ideas, feature requests, and non-critical improvements for the Obvia project. Enhancements are categorized by priority and implementation complexity.
+This document tracks future ideas, feature requests, and non-critical improvements for the Preposition project. Enhancements are categorized by priority and implementation complexity.
 
 ## Enhancement Priority Levels
 
@@ -27,7 +27,7 @@ This document tracks future ideas, feature requests, and non-critical improvemen
 
 #### Kindle Highlights Import
 - **Description**: Import Kindle highlights and notes from CSV/JSON format
-- **User Value**: Integrate existing Kindle annotations into Obvia
+- **User Value**: Integrate existing Kindle annotations into Preposition
 - **Implementation**:
   - Backend: Kindle CSV parser and highlight model
   - Frontend: File upload and mapping interface
@@ -39,7 +39,7 @@ This document tracks future ideas, feature requests, and non-critical improvemen
 
 #### Goodreads Export Compatibility
 - **Description**: Support importing from Goodreads export format
-- **User Value**: Migrate from Goodreads to Obvia
+- **User Value**: Migrate from Goodreads to Preposition
 - **Implementation**:
   - Backend: Goodreads XML/CSV parser
   - Frontend: Import wizard with data mapping
@@ -160,7 +160,7 @@ This document tracks future ideas, feature requests, and non-critical improvemen
 ### 🔴 High Priority
 
 #### Progressive Web App (PWA)
-- **Description**: Convert Obvia to a full PWA with offline capabilities
+- **Description**: Convert Preposition to a full PWA with offline capabilities
 - **User Value**: Native app-like experience on mobile devices
 - **Implementation**:
   - Frontend: Service worker and manifest configuration
@@ -277,7 +277,7 @@ This document tracks future ideas, feature requests, and non-critical improvemen
 
 #### Calibre Library Import
 - **Description**: Import existing Calibre library databases
-- **User Value**: Migration from Calibre to Obvia
+- **User Value**: Migration from Calibre to Preposition
 - **Implementation**:
   - Backend: Calibre database parser and data migration
   - Frontend: Import wizard and progress tracking

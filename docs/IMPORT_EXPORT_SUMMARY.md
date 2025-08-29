@@ -2,7 +2,7 @@
 
 ## Overview
 
-I have successfully implemented a comprehensive library import/export functionality for the Obvia project. This feature allows users to backup, share, and migrate their library collections with full metadata preservation.
+I have successfully implemented a comprehensive library import/export functionality for the Preposition project. This feature allows users to backup, share, and migrate their library collections with full metadata preservation.
 
 ## What Was Built
 

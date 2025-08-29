@@ -523,6 +523,37 @@ const RichTextEditor = ({
         return
       }
 
+      // Handle Tab key for indentation (only when not in slash menu)
+      if (event.key === 'Tab' && !showSlashMenu) {
+        event.preventDefault()
+        
+        // Check if we're in a list context
+        if (editor.isActive('bulletList') || editor.isActive('orderedList') || editor.isActive('taskList')) {
+          if (event.shiftKey) {
+            // Shift+Tab: Outdent the list item
+            editor.chain().focus().liftListItem('listItem').run()
+          } else {
+            // Tab: Indent the list item
+            editor.chain().focus().sinkListItem('listItem').run()
+          }
+        } else {
+          // In regular text, insert spaces for indentation
+          editor.chain().focus().insertContent('    ').run()
+        }
+        return
+      }
+
+      // Handle Ctrl+S / Cmd+S for saving
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault()
+        // Trigger autosave immediately
+        if (onChange) {
+          const htmlContent = editor.getHTML()
+          onChange(htmlContent, true) // true indicates autosave
+        }
+        return
+      }
+
       // Keyboard shortcuts (only when not in slash menu)
       if (!showSlashMenu) {
         // Bold: Cmd/Ctrl + B

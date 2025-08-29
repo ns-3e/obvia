@@ -1,4 +1,4 @@
-Obvia — Personal Intelligent Library Manager (Single-User)
+Preposition — Personal Intelligent Library Manager (Single-User)
 
 Goal: Build a minimal, single-user app to manage a personal book library with ISBN lookup (incl. barcode scan), enriched metadata, intelligent notes, basic + semantic search, and simple recommendations.
 Stack: Backend = Python 3.11, Django 5, DRF, MySQL 8; Frontend = React 18 (Vite), Tailwind CSS.
@@ -19,7 +19,7 @@ Working Rules for the AI Agent
 Phase 0 — Repo & Scaffolding ✅
 	•	✅ Create a monorepo with:
 
-obvia/
+preposition/
   backend/
   frontend/
   docker/
@@ -35,9 +35,9 @@ obvia/
 	•	✅ Add .env.example with keys:
 	•	MYSQL_HOST=mysql
 	•	MYSQL_PORT=3306
-	•	MYSQL_DB=obvia
-	•	MYSQL_USER=obvia
-	•	MYSQL_PASSWORD=obvia
+	•	MYSQL_DB=preposition
+	•	MYSQL_USER=preposition
+	•	MYSQL_PASSWORD=preposition
 	•	MEDIA_ROOT=/app/media
 	•	GOOGLE_BOOKS_ENABLED=true
 	•	OPEN_LIBRARY_ENABLED=true
@@ -54,11 +54,12 @@ obvia/
 	•	Bugs.md - Bug tracking and resolution
 	•	Enhancements.md - Future feature tracking
 	•	Module Interface.md files for major components
+	•	✅ Branding Rename: Update project branding from Obvia → Preposition across all files and documentation
 
 ⸻
 
 Phase 1 — Backend (Django + DRF + MySQL) ✅
-	•	✅ Initialize Django project backend/obvia_core with apps:
+	•	✅ Initialize Django project backend/preposition_core with apps:
 	•	books (metadata, authors, tags, shelves)
 	•	libraries (user libraries & library_books)
 	•	notes (notes/reviews/ratings)

@@ -1,6 +1,6 @@
 # Docker Data Persistence Setup
 
-This document explains how to set up Obvia with Docker to ensure your data persists across container restarts and rebuilds.
+This document explains how to set up Preposition with Docker to ensure your data persists across container restarts and rebuilds.
 
 ## Overview
 
@@ -68,13 +68,13 @@ docker compose exec backend python manage.py shell
 
 ### Volume Locations
 
-- **MySQL Data**: `obvia_mysql_data` volume
-- **Media Files**: `obvia_media_data` volume
+- **MySQL Data**: `preposition_mysql_data` volume
+- **Media Files**: `preposition_media_data` volume
 
 You can inspect these volumes:
 ```bash
-docker volume ls | grep obvia
-docker volume inspect obvia_mysql_data
+docker volume ls | grep preposition
+docker volume inspect preposition_mysql_data
 ```
 
 ## Backup and Restore
@@ -86,7 +86,7 @@ docker volume inspect obvia_mysql_data
 ./scripts/docker-manage.sh backup
 
 # Manual backup
-docker compose exec mysql mysqldump -u obvia -pobvia obvia > backup_$(date +%Y%m%d_%H%M%S).sql
+docker compose exec mysql mysqldump -u preposition -ppreposition preposition > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ### Restoring Backups
@@ -96,7 +96,7 @@ docker compose exec mysql mysqldump -u obvia -pobvia obvia > backup_$(date +%Y%m
 ./scripts/docker-manage.sh restore backup_20241227_143022.sql
 
 # Manual restore
-docker compose exec -T mysql mysql -u obvia -pobvia obvia < backup_file.sql
+docker compose exec -T mysql mysql -u preposition -ppreposition preposition < backup_file.sql
 ```
 
 ## Troubleshooting
@@ -105,7 +105,7 @@ docker compose exec -T mysql mysql -u obvia -pobvia obvia < backup_file.sql
 
 If your data is not persisting, check:
 
-1. **Volume exists**: `docker volume ls | grep obvia`
+1. **Volume exists**: `docker volume ls | grep preposition`
 2. **Volume mounted**: `docker compose ps` (should show healthy containers)
 3. **No `-v` flag**: Make sure you're not using `docker compose down -v`
 
@@ -156,7 +156,7 @@ If you can't connect to the database:
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000/api
-- **MySQL**: localhost:3306 (user: obvia, password: obvia)
+- **MySQL**: localhost:3306 (user: preposition, password: preposition)
 
 ## Environment Variables
 
@@ -164,15 +164,15 @@ The Docker setup uses these environment variables (defined in docker-compose.yml
 
 - `MYSQL_HOST=mysql`
 - `MYSQL_PORT=3306`
-- `MYSQL_DB=obvia`
-- `MYSQL_USER=obvia`
-- `MYSQL_PASSWORD=obvia`
+- `MYSQL_DB=preposition`
+- `MYSQL_USER=preposition`
+- `MYSQL_PASSWORD=preposition`
 - `REDIS_URL=redis://redis:6379/0`
 
 ## Security Notes
 
 - The MySQL root password is set to "root" (change this in production)
-- The obvia user password is set to "obvia" (change this in production)
+- The preposition user password is set to "preposition" (change this in production)
 - All services are exposed on localhost only
 - Consider using Docker secrets for production deployments
 

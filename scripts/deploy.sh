@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Obvia Production Deployment Script
-# This script helps deploy the Obvia application in production mode
+# Preposition Production Deployment Script
+# This script helps deploy the Preposition application in production mode
 
 set -e
 
-echo "🚀 Obvia Production Deployment"
+echo "🚀 Preposition Production Deployment"
 echo "=============================="
 
 # Check if Docker is running
@@ -128,7 +128,7 @@ echo "📚 Creating system shelves..."
 docker-compose exec -T backend python manage.py create_system_shelves
 
 echo ""
-echo "🎉 Obvia is now deployed and running!"
+echo "🎉 Preposition is now deployed and running!"
 echo "====================================="
 echo "📱 Frontend: http://localhost:80 (or your domain)"
 echo "🔧 Backend API: http://localhost:8000"

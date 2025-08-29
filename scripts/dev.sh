@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Obvia Development Script
-# This script helps set up and run the Obvia application in development mode
+# Preposition Development Script
+# This script helps set up and run the Preposition application in development mode
 
 set -e
 
-echo "🚀 Obvia Development Setup"
+echo "🚀 Preposition Development Setup"
 echo "=========================="
 
 # Check if Docker is running
@@ -103,7 +103,7 @@ echo "⚛️  Starting frontend..."
 docker-compose up -d frontend
 
 echo ""
-echo "🎉 Obvia is now running!"
+echo "🎉 Preposition is now running!"
 echo "=========================="
 echo "📱 Frontend: http://localhost:5173"
 echo "🔧 Backend API: http://localhost:8000"

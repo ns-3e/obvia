@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
-import { FileText, Download, Trash2, File, CheckCircle, AlertCircle, Loader } from 'lucide-react'
+import { FileText, Download, Trash2, File, CheckCircle, AlertCircle, Loader, BookOpen } from 'lucide-react'
 import { filesAPI } from '../utils/api'
+import PDFReader from './PDFReader'
 
 const FileList = ({ libraryBookId }) => {
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedPDF, setSelectedPDF] = useState(null)
+  const [highlights, setHighlights] = useState([])
 
   useEffect(() => {
     loadFiles()
@@ -47,6 +50,26 @@ const FileList = ({ libraryBookId }) => {
       console.error('Failed to extract text:', error)
       setError('Failed to extract text')
     }
+  }
+
+  const handleReadPDF = (file) => {
+    // Construct the PDF URL - this will need to be adjusted based on your backend setup
+    const baseUrl = 'http://localhost:8000' // Use explicit localhost for now
+    const pdfUrl = `${baseUrl}/media/${file.file_path}`
+    setSelectedPDF({
+      url: pdfUrl,
+      name: file.filename || file.file_path.split('/').pop(),
+      bookFileId: file.id
+    })
+  }
+
+  const handleHighlight = (highlight) => {
+    setHighlights(prev => [...prev, highlight])
+    console.log('New highlight:', highlight)
+  }
+
+  const handleClosePDF = () => {
+    setSelectedPDF(null)
   }
 
   const formatFileSize = (bytes) => {
@@ -159,6 +182,15 @@ const FileList = ({ libraryBookId }) => {
             </div>
             
             <div className="flex items-center space-x-2">
+              {file.file_type === 'pdf' && (
+                <button
+                  onClick={() => handleReadPDF(file)}
+                  className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-2xl transition-colors"
+                  title="Read PDF"
+                >
+                  <BookOpen className="h-4 w-4" />
+                </button>
+              )}
               <button
                 onClick={() => handleDelete(file.id)}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-colors"
@@ -170,6 +202,17 @@ const FileList = ({ libraryBookId }) => {
           </div>
         ))}
       </div>
+
+      {/* PDF Reader Modal */}
+      {selectedPDF && (
+        <PDFReader
+          fileUrl={selectedPDF.url}
+          fileName={selectedPDF.name}
+          bookFileId={selectedPDF.bookFileId}
+          onClose={handleClosePDF}
+          onHighlight={handleHighlight}
+        />
+      )}
     </div>
   )
 }

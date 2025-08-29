@@ -5,6 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.shortcuts import get_object_or_404
 from django.db import transaction, models
+from django.db.models import Q
 import markdown
 import bleach
 import logging
@@ -25,7 +26,7 @@ class NoteViewSet(viewsets.ModelViewSet):
     serializer_class = NoteSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['library_book', 'ai_generated', 'ref_book', 'ref_chapter', 'ref_section', 'ref_subsection']
-    search_fields = ['title', 'content_markdown']
+    # search_fields = ['title', 'content_markdown']  # Commented out to avoid conflict with custom search action
     ordering_fields = ['created_at', 'updated_at', 'title']
     ordering = ['-created_at']
 
@@ -142,6 +143,140 @@ class NoteViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(referenced_notes, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Search notes with exact, fuzzy, and semantic search."""
+        query = request.query_params.get('q', '').strip()
+        search_type = request.query_params.get('type', 'exact')  # exact, fuzzy, semantic
+        library_book_id = request.query_params.get('library_book_id')
+        library_id = request.query_params.get('library_id')
+        limit = min(int(request.query_params.get('limit', 20)), 100)  # Max 100 results
+        
+        if not query:
+            return Response({'results': [], 'total': 0})
+        
+        queryset = Note.objects.all()
+        
+        # Filter by library book if specified
+        if library_book_id:
+            queryset = queryset.filter(library_book_id=library_book_id)
+        
+        # Filter by library if specified
+        if library_id:
+            queryset = queryset.filter(library_book__library_id=library_id)
+        
+        results = []
+        semantic_results = []  # Initialize for all code paths
+        
+        if search_type == 'exact':
+            # Exact search - case-insensitive
+            results = queryset.filter(
+                Q(title__icontains=query) |
+                Q(content_markdown__icontains=query) |
+                Q(content_blocks_html__icontains=query)
+            )[:limit]
+            
+        elif search_type == 'fuzzy':
+            # Fuzzy search using Django's built-in search
+            from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+            from django.db.models import F
+            
+            # Create search vector for title and content
+            search_vector = SearchVector('title', weight='A') + SearchVector('content_markdown', weight='B')
+            search_query = SearchQuery(query, config='english')
+            
+            results = queryset.annotate(
+                search=search_vector,
+                rank=SearchRank(search_vector, search_query)
+            ).filter(search=search_query).order_by('-rank')[:limit]
+            
+        elif search_type == 'semantic':
+            # Semantic search using embeddings
+            if semantic_search_service.is_enabled():
+                # Get semantic search results
+                semantic_results = semantic_search_service.search(query, library_id, limit)
+                
+                # Filter to only notes and get the actual note objects
+                note_ids = [
+                    int(result['id']) for result in semantic_results 
+                    if result['type'] == 'note'
+                ]
+                
+                if note_ids:
+                    # Get notes in the order of semantic results
+                    note_map = {note.id: note for note in queryset.filter(id__in=note_ids)}
+                    results = [note_map[note_id] for note_id in note_ids if note_id in note_map]
+                else:
+                    results = []
+            else:
+                # Fallback to exact search if semantic search is not enabled
+                results = queryset.filter(
+                    Q(title__icontains=query) |
+                    Q(content_markdown__icontains=query) |
+                    Q(content_blocks_html__icontains=query)
+                )[:limit]
+        
+        # Serialize results with search context
+        serialized_results = []
+        for note in results:
+            note_data = self.get_serializer(note).data
+            
+            # Add search context (highlighted snippet)
+            if search_type == 'exact':
+                snippet = self._create_search_snippet(note, query)
+                note_data['search_snippet'] = snippet
+            elif search_type == 'fuzzy' and hasattr(note, 'rank'):
+                snippet = self._create_search_snippet(note, query)
+                note_data['search_snippet'] = snippet
+                note_data['search_rank'] = float(note.rank)
+            elif search_type == 'semantic':
+                # Find the semantic result for this note
+                semantic_result = next(
+                    (r for r in semantic_results if r['type'] == 'note' and int(r['id']) == note.id),
+                    None
+                )
+                if semantic_result:
+                    note_data['search_snippet'] = semantic_result.get('snippet', '')
+                    note_data['similarity_score'] = semantic_result.get('similarity_score', 0)
+            
+            serialized_results.append(note_data)
+        
+        return Response({
+            'results': serialized_results,
+            'total': len(serialized_results),
+            'query': query,
+            'search_type': search_type
+        })
+
+    def _create_search_snippet(self, note, query):
+        """Create a search snippet highlighting the query."""
+        content = note.content_markdown or note.content_blocks_html or ''
+        if not content or not query:
+            return content[:200] + '...' if len(content) > 200 else content
+        
+        # Find query in content (case insensitive)
+        query_lower = query.lower()
+        content_lower = content.lower()
+        
+        pos = content_lower.find(query_lower)
+        if pos != -1:
+            # Extract context around the query
+            start = max(0, pos - 100)
+            end = min(len(content), pos + len(query) + 100)
+            
+            snippet = content[start:end]
+            
+            # Add ellipsis if needed
+            if start > 0:
+                snippet = '...' + snippet
+            if end < len(content):
+                snippet = snippet + '...'
+            
+            return snippet
+        
+        # If query not found, return beginning of content
+        return content[:200] + '...' if len(content) > 200 else content
 
 
 class DiagramViewSet(viewsets.ModelViewSet):

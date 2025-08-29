@@ -1,5 +1,5 @@
 """
-Test settings for Obvia
+Test settings for Preposition
 """
 from .settings import *
 

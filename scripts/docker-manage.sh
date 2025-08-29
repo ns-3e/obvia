@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# Docker management script for Obvia
+# Docker management script for Preposition
 # This script helps manage the Docker containers with data persistence
 
 set -e
 
 case "$1" in
     "start")
-        echo "Starting Obvia with data persistence..."
+        echo "Starting Preposition with data persistence..."
         docker compose up -d
-        echo "✅ Obvia is running!"
+        echo "✅ Preposition is running!"
         echo "🌐 Frontend: http://localhost:5173"
         echo "🔧 Backend API: http://localhost:8000/api"
         echo "🗄️  MySQL: localhost:3306"
@@ -23,12 +23,12 @@ case "$1" in
         docker compose exec backend python manage.py create_default_libraries
         ;;
     "stop")
-        echo "Stopping Obvia containers..."
+        echo "Stopping Preposition containers..."
         docker compose down
         echo "✅ Containers stopped (data preserved)"
         ;;
     "restart")
-        echo "Restarting Obvia containers..."
+        echo "Restarting Preposition containers..."
         docker compose restart
         echo "✅ Containers restarted"
         ;;
@@ -67,7 +67,7 @@ case "$1" in
         ;;
     "backup")
         echo "Creating database backup..."
-        docker compose exec mysql mysqldump -u obvia -pobvia obvia > backup_$(date +%Y%m%d_%H%M%S).sql
+        docker compose exec mysql mysqldump -u preposition -ppreposition preposition > backup_$(date +%Y%m%d_%H%M%S).sql
         echo "✅ Backup created"
         ;;
     "restore")
@@ -76,7 +76,7 @@ case "$1" in
             exit 1
         fi
         echo "Restoring database from $2..."
-        docker compose exec -T mysql mysql -u obvia -pobvia obvia < "$2"
+        docker compose exec -T mysql mysql -u preposition -ppreposition preposition < "$2"
         echo "✅ Database restored"
         ;;
     "clean")
@@ -86,7 +86,7 @@ case "$1" in
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             echo "Removing containers and volumes..."
             docker compose down -v
-            docker volume rm obvia_mysql_data obvia_media_data 2>/dev/null || true
+            docker volume rm preposition_mysql_data preposition_media_data 2>/dev/null || true
             echo "✅ All data removed"
         else
             echo "Operation cancelled"
@@ -97,7 +97,7 @@ case "$1" in
         docker compose ps
         echo
         echo "Volume status:"
-        docker volume ls | grep obvia
+        docker volume ls | grep preposition
         ;;
     *)
         echo "Usage: $0 {start|stop|restart|logs|backend-logs|frontend-logs|shell|migrate|makemigrations|collectstatic|backup|restore|clean|status}"

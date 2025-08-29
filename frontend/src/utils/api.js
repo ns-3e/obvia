@@ -53,7 +53,7 @@ export const booksAPI = {
   ingest: (data) => api.post('/books/ingest/', data),
   
   // Search for cover images
-  searchCovers: (data) => api.post('/books/search-covers/', data),
+  searchCovers: (data) => api.post('/books/search_covers/', data),
   
   // Categorize book
   categorize: (data) => api.post('/books/categorize/', data),
@@ -181,6 +181,9 @@ export const notesAPI = {
   
   // AI assistance
   aiAssist: (noteId, data) => api.post(`/notes/${noteId}/ai_assist/`, data),
+  
+  // Search notes
+  search: (params = {}) => api.get('/notes/search/', { params }),
 }
 
 export const diagramsAPI = {
@@ -311,6 +314,26 @@ export const filesAPI = {
   
   // Extract text from PDF
   extractText: (id) => api.post(`/files/${id}/extract_text/`),
+}
+
+export const pdfHighlightsAPI = {
+  // Get all highlights
+  getAll: (params = {}) => api.get('/pdf-highlights/', { params }),
+  
+  // Get single highlight
+  getById: (id) => api.get(`/pdf-highlights/${id}/`),
+  
+  // Get highlights by book file
+  getByBookFile: (bookFileId) => api.get('/pdf-highlights/', { params: { book_file_id: bookFileId } }),
+  
+  // Create highlight
+  create: (data) => api.post('/pdf-highlights/', data),
+  
+  // Update highlight
+  update: (id, data) => api.patch(`/pdf-highlights/${id}/`, data),
+  
+  // Delete highlight
+  delete: (id) => api.delete(`/pdf-highlights/${id}/`),
 }
 
 export const searchAPI = {

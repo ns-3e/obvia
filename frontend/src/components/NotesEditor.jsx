@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Edit, Brain, Plus, Trash2, Loader } from 'lucide-react'
+import { Edit, Brain, Plus, Trash2, Loader, Search } from 'lucide-react'
 import { notesAPI } from '../utils/api'
 import RichTextEditor from './RichTextEditor'
+import NoteSearch from './NoteSearch'
 
 const NotesEditor = ({ libraryBookId }) => {
   const [notes, setNotes] = useState([])
@@ -15,6 +16,7 @@ const NotesEditor = ({ libraryBookId }) => {
   const [lastAutosave, setLastAutosave] = useState(null)
   const [isAutosaving, setIsAutosaving] = useState(false)
   const [autosaveError, setAutosaveError] = useState(null)
+  const [showSearch, setShowSearch] = useState(false)
   
 
 
@@ -183,10 +185,37 @@ const NotesEditor = ({ libraryBookId }) => {
       // Handle autosave
       if (isAutosave) {
         console.log('Calling handleAutosave...')
-        handleAutosave(editingNote.id, newContent)
+        // Use the newContent which has the updated state
+        handleAutosave(newContent.id, newContent)
       }
     }
   }
+
+  // Handle Ctrl+S / Cmd+S keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault()
+        // Use a callback to get the current editingNote state
+        setEditingNote(currentNote => {
+          if (currentNote) {
+            console.log('Manual save triggered via Ctrl+S/Cmd+S')
+            handleAutosave(currentNote.id, currentNote)
+          }
+          return currentNote
+        })
+      }
+    }
+
+    // Only add listener when editing a note
+    if (editingNote) {
+      document.addEventListener('keydown', handleKeyDown)
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [editingNote])
 
   const handleAutosave = async (noteId, noteData) => {
     try {
@@ -248,19 +277,43 @@ const NotesEditor = ({ libraryBookId }) => {
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Notes ({notes.length})
         </h3>
-        <button
-          onClick={handleCreateNote}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Note</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className={`btn-outline flex items-center space-x-2 ${
+              showSearch ? 'bg-gray-100 dark:bg-gray-700' : ''
+            }`}
+          >
+            <Search className="h-4 w-4" />
+            <span>Search</span>
+          </button>
+          <button
+            onClick={handleCreateNote}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>New Note</span>
+          </button>
+        </div>
       </div>
 
       {/* Error Message */}
       {error && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl">
           <p className="text-red-700 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
+      {/* Search Component */}
+      {showSearch && (
+        <div className="card p-4">
+          <NoteSearch
+            libraryBookId={libraryBookId}
+            onNoteClick={(note) => {
+              handleEditNote(note)
+              setShowSearch(false)
+            }}
+          />
         </div>
       )}
 

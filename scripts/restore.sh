@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Obvia Restore Script
+# Preposition Restore Script
 # This script restores the database and media files from backup
 
 set -e
 
-echo "🔄 Obvia Restore Script"
+echo "🔄 Preposition Restore Script"
 echo "======================="
 
 # Check arguments
@@ -13,7 +13,7 @@ if [ $# -lt 2 ]; then
     echo "❌ Usage: $0 <database_backup_file> <media_backup_file>"
     echo ""
     echo "Example:"
-    echo "  $0 ./backups/obvia_db_20241201_143022.sql ./backups/obvia_media_20241201_143022.tar.gz"
+    echo "  $0 ./backups/preposition_db_20241201_143022.sql ./backups/preposition_media_20241201_143022.tar.gz"
     exit 1
 fi
 
@@ -63,7 +63,7 @@ sleep 10
 
 # Restore database
 echo "🗄️  Restoring database..."
-docker-compose exec -T mysql mysql -u obvia -pobvia obvia < "$DB_BACKUP_FILE"
+docker-compose exec -T mysql mysql -u preposition -ppreposition preposition < "$DB_BACKUP_FILE"
 
 if [ $? -eq 0 ]; then
     echo "✅ Database restored successfully"

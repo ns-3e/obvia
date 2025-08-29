@@ -22,7 +22,7 @@ const Header = () => {
           <Link to="/" className="flex items-center space-x-2">
             <BookOpen className="h-8 w-8 text-gray-900 dark:text-gray-100" />
             <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Obvia
+              Preposition
             </span>
           </Link>
 

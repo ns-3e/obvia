@@ -1,7 +1,7 @@
 # Libraries Module Interface
 
 ## Purpose
-The libraries module manages user-created book collections and provides the organizational structure for grouping and managing books within the Obvia system. It handles library creation, book-to-library relationships, and shelf organization.
+The libraries module manages user-created book collections and provides the organizational structure for grouping and managing books within the Preposition system. It handles library creation, book-to-library relationships, and shelf organization.
 
 ## Responsibilities
 - **Library Management**: Create, update, and delete user libraries

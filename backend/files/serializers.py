@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import BookFile
+from .models import BookFile, PDFHighlight
 
 
 class BookFileSerializer(serializers.ModelSerializer):
@@ -37,3 +37,15 @@ class BookFileUploadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Only PDF and EPUB files are allowed")
         
         return value
+
+
+class PDFHighlightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PDFHighlight
+        fields = '__all__'
+
+
+class PDFHighlightCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PDFHighlight
+        fields = ['book_file', 'text', 'page', 'x', 'y', 'width', 'height', 'color']

@@ -1,7 +1,7 @@
 # Frontend Components Interface
 
 ## Purpose
-The frontend components provide the user interface for Obvia, delivering a modern, responsive, and accessible experience for managing personal libraries. Components are built with React 18, use Tailwind CSS for styling, and follow a monochrome design system.
+The frontend components provide the user interface for Preposition, delivering a modern, responsive, and accessible experience for managing personal libraries. Components are built with React 18, use Tailwind CSS for styling, and follow a monochrome design system.
 
 ## Component Architecture
 

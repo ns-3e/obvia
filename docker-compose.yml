@@ -3,14 +3,14 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    container_name: obvia-mysql
+    container_name: preposition-mysql
     restart: unless-stopped
     environment:
       # Development defaults - change these for production
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: obvia
-      MYSQL_USER: obvia
-      MYSQL_PASSWORD: obvia
+      MYSQL_DATABASE: preposition
+      MYSQL_USER: preposition
+      MYSQL_PASSWORD: preposition
     ports:
       - "3306:3306"
     volumes:
@@ -22,7 +22,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: obvia-redis
+    container_name: preposition-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -35,14 +35,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: obvia-backend
+    container_name: preposition-backend
     restart: unless-stopped
     environment:
       - MYSQL_HOST=mysql
       - MYSQL_PORT=3306
-      - MYSQL_DB=obvia
-      - MYSQL_USER=obvia
-      - MYSQL_PASSWORD=obvia
+      - MYSQL_DB=preposition
+      - MYSQL_USER=preposition
+      - MYSQL_PASSWORD=preposition
       - REDIS_URL=redis://redis:6379/0
       - MEDIA_ROOT=/app/media
       - DEBUG=true
@@ -69,7 +69,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: obvia-frontend
+    container_name: preposition-frontend
     restart: unless-stopped
     ports:
       - "5173:80"
@@ -81,7 +81,7 @@ services:
   # Optional MinIO service (disabled by default)
   # minio:
   #   image: minio/minio:latest
-  #   container_name: obvia-minio
+  #   container_name: preposition-minio
   #   restart: unless-stopped
   #   environment:
   #     MINIO_ROOT_USER: minioadmin

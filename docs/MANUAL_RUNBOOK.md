@@ -1,6 +1,6 @@
-# Obvia Manual Runbook
+# Preposition Manual Runbook
 
-This runbook provides step-by-step instructions for manually testing all core functionality of the Obvia Personal Intelligent Library Manager.
+This runbook provides step-by-step instructions for manually testing all core functionality of the Preposition Personal Intelligent Library Manager.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ This runbook provides step-by-step instructions for manually testing all core fu
 ### 1.1 Frontend Loading
 - [ ] **Test**: Navigate to http://localhost:5173
 - [ ] **Expected**: Dashboard loads with empty state or existing libraries
-- [ ] **Verify**: Header shows "Obvia" title and theme toggle works
+- [ ] **Verify**: Header shows "Preposition" title and theme toggle works
 
 ### 1.2 Theme Toggle
 - [ ] **Test**: Click the theme toggle button (moon/sun icon)

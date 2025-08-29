@@ -4,7 +4,7 @@ from rest_framework.documentation import include_docs_urls
 from books.views import BookViewSet, AuthorViewSet, TagViewSet, ShelfViewSet, ChapterViewSet, SectionViewSet, SubSectionViewSet, PageRangeViewSet
 from libraries.views import LibraryViewSet, LibraryBookViewSet
 from notes.views import NoteViewSet, RatingViewSet, ReviewViewSet, DiagramViewSet, NoteDiagramViewSet
-from files.views import BookFileViewSet
+from files.views import BookFileViewSet, PDFHighlightViewSet
 from search.views import SearchViewSet, SearchEmbeddingViewSet
 
 # Create a router and register our viewsets with it
@@ -25,6 +25,7 @@ router.register(r'reviews', ReviewViewSet)
 router.register(r'diagrams', DiagramViewSet)
 router.register(r'note-diagrams', NoteDiagramViewSet)
 router.register(r'files', BookFileViewSet)
+router.register(r'pdf-highlights', PDFHighlightViewSet)
 router.register(r'search-embeddings', SearchEmbeddingViewSet)
 
 # The API URLs are now determined automatically by the router
@@ -39,9 +40,8 @@ urlpatterns = [
 
 
     path('books/', include([
-        path('search-covers/', BookViewSet.as_view({'post': 'search_covers'}), name='book-search-covers'),
         path('categorize/', BookViewSet.as_view({'post': 'categorize'}), name='book-categorize'),
     ])),
 
-    path('health/', include('obvia_core.health_urls')),
+    path('health/', include('preposition_core.health_urls')),
 ]

@@ -1,7 +1,7 @@
 # Books Module Interface
 
 ## Purpose
-The books module serves as the core data management system for book entities in Obvia. It handles book metadata, author relationships, and provides the foundation for all book-related operations across the application.
+The books module serves as the core data management system for book entities in Preposition. It handles book metadata, author relationships, and provides the foundation for all book-related operations across the application.
 
 ## Responsibilities
 - **Book Entity Management**: Core book data model with normalized metadata

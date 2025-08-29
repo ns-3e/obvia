@@ -10,8 +10,8 @@ from django.conf import settings
 import os
 import hashlib
 import logging
-from .models import BookFile
-from .serializers import BookFileSerializer, BookFileUploadSerializer
+from .models import BookFile, PDFHighlight
+from .serializers import BookFileSerializer, BookFileUploadSerializer, PDFHighlightSerializer, PDFHighlightCreateSerializer
 from libraries.models import LibraryBook
 
 
@@ -37,25 +37,35 @@ class BookFileViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Handle file upload."""
-        serializer = self.get_serializer(data=request.data)
+        # Get the uploaded file first
+        uploaded_file = request.FILES.get('file')
+        if not uploaded_file:
+            return Response(
+                {'error': 'No file provided'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Determine file type from file extension
+        file_type = uploaded_file.name.split('.')[-1].lower()
+        if file_type not in ['pdf', 'epub']:
+            return Response(
+                {'error': 'Only PDF and EPUB files are supported'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create a new data dict with file_type added
+        data = {
+            'library_book': request.data.get('library_book'),
+            'file_type': file_type,
+            'file': uploaded_file
+        }
+        
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         
         try:
             # Get the uploaded file
             uploaded_file = request.FILES.get('file')
-            if not uploaded_file:
-                return Response(
-                    {'error': 'No file provided'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Validate file type
-            file_type = uploaded_file.name.split('.')[-1].lower()
-            if file_type not in ['pdf', 'epub']:
-                return Response(
-                    {'error': 'Only PDF and EPUB files are supported'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
             
             # Get library book
             library_book = get_object_or_404(LibraryBook, id=serializer.validated_data['library_book'].id)
@@ -73,14 +83,14 @@ class BookFileViewSet(viewsets.ModelViewSet):
             # Create BookFile record
             book_file = BookFile.objects.create(
                 library_book=library_book,
-                file_type=file_type,
+                file_type=serializer.validated_data['file_type'],
                 file_path=file_path,
                 bytes=file_size,
                 checksum=checksum
             )
             
             # Extract text if it's a PDF
-            if file_type == 'pdf':
+            if serializer.validated_data['file_type'] == 'pdf':
                 self._extract_pdf_text(book_file)
             
             response_serializer = BookFileSerializer(book_file)
@@ -159,3 +169,24 @@ class BookFileViewSet(viewsets.ModelViewSet):
             # Don't fail the upload, just mark as not extracted
             book_file.text_extracted = False
             book_file.save()
+
+
+class PDFHighlightViewSet(viewsets.ModelViewSet):
+    queryset = PDFHighlight.objects.all()
+    serializer_class = PDFHighlightSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['book_file', 'page']
+    ordering_fields = ['created_at', 'page']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        queryset = PDFHighlight.objects.all()
+        book_file_id = self.request.query_params.get('book_file_id')
+        if book_file_id:
+            queryset = queryset.filter(book_file_id=book_file_id)
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action in ['create']:
+            return PDFHighlightCreateSerializer
+        return PDFHighlightSerializer
